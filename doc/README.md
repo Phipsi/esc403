@@ -1,0 +1,3 @@
+# doc
+
+**What's to store here**: text associated "documentary" documents such as papers, articles, proposals, ...
