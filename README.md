@@ -40,6 +40,7 @@ gitGraph
    commit
    checkout main
    merge philipp
+   commit
    branch julie
    checkout julie
    commit
