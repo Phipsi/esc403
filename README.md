@@ -30,7 +30,7 @@ General project structure is derived by "Good enough practices in scientific com
 
 ```mermaid
 ---
-title: Example Git diagram
+title: ESC403 branching strategy
 ---
 gitGraph
    commit id: "initial commit"
@@ -40,9 +40,9 @@ gitGraph
    commit
    checkout main
    merge philipp
-   commit
+   commit id: "branch off"
    branch julie
    checkout julie
    commit
-   merge julie
+   commit
 ```
