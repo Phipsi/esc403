@@ -1,29 +1,61 @@
 # Proposal Foot & Bike Traffic in Zurich
 
-## What questions will we try to answer with the project?
-1. How does weather affect foot and bike traffic in Zurich City?
-2. How many city bikes would need to be provided depending on weather condition and season (or month)?
+## What is the general topic ?
+
+Renting public bikes has become more and more popular these past few years and to approach the rising demand one would want to discover the pattern of bike renting to better fit the offer to the demand. 
+
 
 ## What data will be used
 ### Traffic Data - City of Zurich
 **Data** *(Source)*: [Daten der automatischen Fussgänger- und Velozählung - Viertelstundenwerte](https://data.stadt-zuerich.ch/dataset/ted_taz_verkehrszaehlungen_werte_fussgaenger_velo)
 
+The data were collected by the civil engineering office of the city of Zürich and recense the foot and bike traffic at different geographic points throughout the city.
+The data set contains the following variables :
 
-More readings about how this data collection is beeing conducted: <br>
+- zählgerät : ID 
+- Frendschlüssel Zählstelle : ID of arriving point ?
+- Datum : Date in the format YYYY-MM-DD
+- Velo_in : Number of bikes arriving in the station
+- Velo_out : Number of bikes getting out of the station
+- Fuss_in : Number of pedestrians arriving in the station
+- Fuss_out : Number of pedestrians getting out of the station
+- Koordinate_Ost : West coordinates (longitude)
+- Koordinate_Nord : North coordinates (latitude)
+
+More readings about how this data collection is being conducted: <br>
 [Automatische Zählungen des Fussverkehrs ](https://www.stadt-zuerich.ch/ted/de/index/taz/verkehr/webartikel/webartikel_fussverkehrszaehlung.html) <br>
 [Automatische Zählungen des Veloverkehrs](https://www.stadt-zuerich.ch/ted/de/index/taz/verkehr/webartikel/webartikel_velozaehlungen.html)
 
 ### Weather Data - City of Zurich
 - https://opendata.swiss/en/dataset/stundlich-aktualisierte-meteodaten-seit-1992
 
+The data set includes hourly values from 1992, divided into annual files. The variables are :
+- air pressure
+- precipitation duration
+- global radiation
+- temperature
+- relative humidity
+- wind direction
+
 ### Population Data - City of Zurich
 - https://opendata.swiss/de/dataset/bevolkerung-seit-1901
 
+The data set contains the variation of population of the city of Zürich. The latest update is from the 8th of February 2024. 
+
+## How will data be processed ?
+
+The different data sets will be aggregated and exploratory analysis will be done to have an overview of bike's renting during different period of the year and on different weather. 
+
+The number of bike renting (and of pedestrians ?) will be set as the outcome variables and the weather as well as the population will be set as the predictor variables.
+
+## What questions will we try to answer with the project?
+
+1. How does weather affect foot and bike traffic in Zurich City?
+2. How many city bikes would need to be provided depending on weather condition and season (or month)?
 
 ## What techniques will be used?
-
+- Exploratory analysis
 - Correlation-analysis
 - Lasso Regression for variable selection and variable analysis
-- Exploratory analysis
 - Visualization of geo data (if possible)
 - Regression models for prediction of traffic (GLM, ...)
