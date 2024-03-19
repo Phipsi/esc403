@@ -27,15 +27,36 @@ More readings about how this data collection is being conducted: <br>
 [Automatische Zählungen des Veloverkehrs](https://www.stadt-zuerich.ch/ted/de/index/taz/verkehr/webartikel/webartikel_velozaehlungen.html)
 
 ### Weather Data - City of Zurich
-- https://opendata.swiss/en/dataset/stundlich-aktualisierte-meteodaten-seit-1992
+- [Hourly meteodata](https://opendata.swiss/en/dataset/stundlich-aktualisierte-meteodaten-seit-1992)
 
 The data set includes hourly values from 1992, divided into annual files. The variables are :
-- air pressure
-- precipitation duration
-- global radiation
-- temperature
-- relative humidity
-- wind direction
+- Date
+- Location
+- Parameter
+- Interval
+- Unit
+- Value
+- Status
+
+It is a long table holding following measurements (**Unit**):
+| Unit |
+| ---- |
+| air pressure |
+| precipitation duration |
+| global radiation |
+| temperature |
+| relative humidity |
+| wind direction |
+
+For example after successful import `weather.head()` gives you following export:
+
+| Datum | Standort | Parameter | Intervall | Einheit | Wert | Status |
+| ----- | -------- | -------- |-------- |-------- |-------- |-------- |
+| 2023-01-01T00:00+0100	| Zch_Stampfenbachstrasse	| T	| h1	| °C	| 11.57	| provisorisch
+| 2023-01-01T00:00+0100	| Zch_Stampfenbachstrasse	| Hr	| h1	| %Hr	| 72.29	| provisorisch
+| 2023-01-01T00:00+0100	| Zch_Stampfenbachstrasse	| p	| h1	| hPa	| 971.62	| provisorisch
+| 2023-01-01T00:00+0100	| Zch_Stampfenbachstrasse	| RainDur	| h1	| min	| 0.00	|  provisorisch
+| 2023-01-01T00:00+0100	| Zch_Stampfenbachstrasse	| StrGlo	| h1	| W/m2	| 0.01	| provisorisch
 
 ### Population Data - City of Zurich
 - https://opendata.swiss/de/dataset/bevolkerung-seit-1901
