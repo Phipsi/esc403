@@ -76,7 +76,9 @@ The number of bikes (and of pedestrians ?) at a given time of the day (or during
 
 ## What questions will we try to answer with the project?
 
-1. How does weather affect foot and bike traffic in Zurich City?
+- **Question #1** : How does weather, season and population affect foot and bike traffic in Zurich City and is it possible to predict? <br>
+**Why does it matters** : This could help public transport planners, city planners, street food vendors or for example city bike rental companies to improve their ressource allocation problem.
+
 2. How many city bikes would need to be provided depending on weather condition and season (or month)?
 
 ## What techniques will be used?
@@ -85,3 +87,5 @@ The number of bikes (and of pedestrians ?) at a given time of the day (or during
 - Lasso Regression for variable selection and variable analysis
 - Visualization of geo data (if possible)
 - Regression models for prediction of traffic (GLM, ...)
+- Classification problem?
+- Try random forest for the regression problem
