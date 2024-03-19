@@ -12,15 +12,15 @@ Renting public bikes has become more and more popular these past few years and t
 The data were collected by the civil engineering office of the city of Zürich and recense the foot and bike traffic at different geographic points throughout the city.
 The data set contains the following variables :
 
-- zählgerät : ID 
-- Frendschlüssel Zählstelle : ID of arriving point ?
-- Datum : Date in the format YYYY-MM-DD
-- Velo_in : Number of bikes arriving in the station
-- Velo_out : Number of bikes getting out of the station
-- Fuss_in : Number of pedestrians arriving in the station
-- Fuss_out : Number of pedestrians getting out of the station
-- Koordinate_Ost : West coordinates (longitude)
-- Koordinate_Nord : North coordinates (latitude)
+- **zählgerät** : ID 
+- **Frendschlüssel Zählstelle** : ID of the location where the measurement was taken
+- **Datum** : Date in the format YYYY-MM-DD
+- **Velo_in** : Number of bikes arriving in the station
+- **Velo_out** : Number of bikes getting out of the station
+- **Fuss_in** : Number of pedestrians arriving in the station
+- **Fuss_out** : Number of pedestrians getting out of the station
+- **Koordinate_Ost** : West coordinates (longitude)
+- **Koordinate_Nord** : North coordinates (latitude)
 
 More readings about how this data collection is being conducted: <br>
 [Automatische Zählungen des Fussverkehrs ](https://www.stadt-zuerich.ch/ted/de/index/taz/verkehr/webartikel/webartikel_fussverkehrszaehlung.html) <br>
@@ -30,13 +30,13 @@ More readings about how this data collection is being conducted: <br>
 - [Hourly meteodata](https://opendata.swiss/en/dataset/stundlich-aktualisierte-meteodaten-seit-1992)
 
 The data set includes hourly values from 1992, divided into annual files. The variables are :
-- Date
-- Location
-- Parameter
-- Interval
-- Unit
-- Value
-- Status
+- **Datum** : Date
+- **Standort** : Location
+- **Parameter** : Parameter
+- **Intervall** : Interval
+- **Einheit** : Unit
+- **Wert** : Value
+- **Status** : Status
 
 It is a long table holding following measurements (**Unit**):
 | Unit |
