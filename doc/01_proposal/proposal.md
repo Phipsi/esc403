@@ -70,9 +70,9 @@ The dataset holds following attributes:
 
 ## How will data be processed ?
 
-The different data sets will be aggregated and exploratory analysis will be done to have an overview of bike's renting during different period of the year and on different weather. 
+The different data sets will be aggregated and exploratory analysis will be done to have an overview of foot and bike traffic during different periods of the year and in different weather conditions. 
 
-The number of bike renting (and of pedestrians ?) will be set as the outcome variables and the weather as well as the population will be set as the predictor variables.
+The number of bikes (and of pedestrians ?) at a given time of the day (or during a whole day) will be set as the outcome variables and the weather as well as the population will be set as the predictor variables.
 
 ## What questions will we try to answer with the project?
 
