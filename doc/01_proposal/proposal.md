@@ -61,7 +61,12 @@ For example after successful import `weather.head()` gives you following export:
 ### Population Data - City of Zurich
 - https://opendata.swiss/de/dataset/bevolkerung-seit-1901
 
-The data set contains the variation of population of the city of Zürich. The latest update is from the 8th of February 2024. 
+The data set contains the variation of population of the city of Zürich (Wirtschaftliche Wohnbevölkerung der Stadt Zürich nach Jahr, seit 1901.). The latest update is from the 8th of February 2024. 
+
+The dataset holds following attributes:
+
+- **StichtagDatJahr** : Year
+- **AnzBestWir** : Economic resident population of the city of Zurich by year
 
 ## How will data be processed ?
 
