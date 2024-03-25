@@ -23,7 +23,7 @@ The data set contains the following variables :
 - **Koordinate_Nord** : North coordinates (latitude)
 
 More readings about how this data collection is being conducted: <br>
-[Automatische Zählungen des Fussverkehrs ](https://www.stadt-zuerich.ch/ted/de/index/taz/verkehr/webartikel/webartikel_fussverkehrszaehlung.html) <br>
+[Automatische Zählungen des Fussverkehrs](https://www.stadt-zuerich.ch/ted/de/index/taz/verkehr/webartikel/webartikel_fussverkehrszaehlung.html) <br>
 [Automatische Zählungen des Veloverkehrs](https://www.stadt-zuerich.ch/ted/de/index/taz/verkehr/webartikel/webartikel_velozaehlungen.html)
 
 ### Weather Data - City of Zurich
