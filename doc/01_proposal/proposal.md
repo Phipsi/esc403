@@ -1,4 +1,5 @@
 # Proposal Foot & Bike Traffic in Zurich
+Julie Tschanz, Philipp Wyss, Damian Brülhart, Mike Krähenbühl
 
 ## What is the general topic ?
 
