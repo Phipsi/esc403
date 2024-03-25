@@ -4,7 +4,7 @@ ESC 403 Data Science Project Repository
 ## Project Members
 - Julie Tschanz
 - Philipp Wyss
-- Damian Brühlhaart
+- Damian Brülhart
 - Mike Krähenbühl
 
 
