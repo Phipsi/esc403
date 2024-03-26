@@ -69,7 +69,7 @@ The dataset holds following attributes:
 - **StichtagDatJahr** : Year
 - **AnzBestWir** : Economic resident population of the city of Zurich by year
 
-## How will data be processed ?
+## How will the data be processed ?
 
 The different data sets will be aggregated based on date and exploratory analysis will be done to have an overview of foot and bike traffic during different periods of the year and in different weather conditions. 
 
