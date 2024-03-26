@@ -3,7 +3,9 @@ Julie Tschanz, Philipp Wyss, Damian Brülhart, Mike Krähenbühl
 
 ## What is the general topic ?
 
-Renting public bikes has become more and more popular these past few years and to approach the rising demand one would want to discover the pattern of bike renting to better fit the offer to the demand. 
+Information about the traffic situation plays an important role in our day to day lives. However, the information is also important for the industry like planning public transport or bike rental places.
+Renting public bikes has become more and more popular these past few years and to approach the rising demand one would want to discover the pattern of bike renting to better fit the offer to the demand.
+The general idea is to judge and predict the bike and pedestrian traffic situation based on weather, season, etc..
 
 
 ## What data will be used
