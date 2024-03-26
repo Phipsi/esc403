@@ -87,6 +87,5 @@ The number of bikes (and of pedestrians ?) at a given time of the day (or during
 - Correlation-analysis
 - Lasso Regression for variable selection and variable analysis
 - Visualization of geo data (if possible)
-- Regression models for prediction of traffic (GLM, ...)
-- Classification problem?
-- Try random forest for the regression problem
+- Model for prediction of traffic (GLM, random forest, ...)
+- Maybe pose as classification problem
