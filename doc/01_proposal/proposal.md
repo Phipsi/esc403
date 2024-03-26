@@ -3,11 +3,9 @@ Julie Tschanz, Philipp Wyss, Damian Brülhart, Mike Krähenbühl
 
 ## What is the general topic ?
 
-Information about the traffic situation plays an important role in our day to day lives. However, the information is also important for the industry like planning public transport or bike rental places.
+Information about the traffic situation plays an important role in our day to day lives. Such information is also important for public administration and businesses, e.g. for planning public transport or bike hire places.
 Renting public bikes has become more and more popular these past few years and to approach the rising demand one would want to discover the pattern of bike renting to better fit the offer to the demand.
-The general idea is to judge and predict the bike and pedestrian traffic situation based on weather, season, etc..
-
-Mike: Renting public bikes has become more and more popular these past few years and to approach the rising demand one would want to discover the pattern of bike renting to better fit the offer to the demand. Bike traffic in general might depend upon variables such as weather, weekday, population density among others. With this project we intend to find out which variables affect the amount of bike use and build models that are able to predict the bike traffic at a given timepoint. Such predictive information might be helpful for bike rental services.
+The general idea is to assess and predict the bike and pedestrian traffic situation based on weather, season, etc.
 
 
 ## What data will be used
