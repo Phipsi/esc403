@@ -81,7 +81,7 @@ The number of bikes (maybe also pedestrians) at a given time of the day (or duri
 
 ## What questions will we try to answer with the project?
 
-1. **Main Question** : How does weather, season and population affect foot and bike traffic in Zurich City and is it possible to predict? <br>
+1. **Main Question** : How does weather, season and population affect foot and bike traffic in Zurich City and is it possible to make predictions? <br>
 **Why does it matters** : This could help public transport planners, city planners, street food vendors or for example city bike rental companies to improve their ressource allocation problem.
 
 2. When do city bike rental locations need to be ready with high capacity depending on conditions (weather, season, ...)?
