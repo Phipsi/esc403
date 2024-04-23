@@ -1,0 +1,73 @@
+---
+title: "EDA"
+author: "Julie Tschanz"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Exploratory Data analysis
+
+```{r}
+data <- read.csv("df_agg_hourly.csv", header = TRUE)
+```
+
+```{r}
+#agregating by days
+library(dplyr)
+data2 <- data %>%
+  mutate(group_id = rep(1:ceiling(n()/24), each = 24, length.out = n()))
+
+
+
+# Now use group_by() and summarize() to aggregate by 'group_id'
+data2 <- data2 %>%
+  group_by(group_id) %>%
+  summarize(
+    across(.cols = everything(), .fns = function(x) {
+      if (is.numeric(x)) {
+        mean(x, na.rm = TRUE)  # Apply mean() to numeric columns
+      } else {
+        first(x)  # Preserve the first value of non-numeric columns
+      }
+    })
+  )
+
+data2 <- select(data2, -group_id)
+```
+
+
+```{r}
+#Agregating by months
+data3 <- data2 %>%
+  mutate(group_id = rep(1:ceiling(n()/30), each = 30, length.out = n()))
+
+
+
+# Now use group_by() and summarize() to aggregate by 'group_id'
+data3 <- data3 %>%
+  group_by(group_id) %>%
+  summarize(
+    across(.cols = everything(), .fns = function(x) {
+      if (is.numeric(x)) {
+        mean(x, na.rm = TRUE)  # Apply mean() to numeric columns
+      } else {
+        first(x)  # Preserve the first value of non-numeric columns
+      }
+    })
+  )
+
+data3 <- select(data3, -group_id)
+```
+
+
+```{r}
+plot(data3$VELO_IN, type = "l")
+lines(data3$VELO_OUT, col="red")
+lines(data3$FUSS_IN, col = "green")
+lines(data3$FUSS_OUT, col = "blue")
+```
+
