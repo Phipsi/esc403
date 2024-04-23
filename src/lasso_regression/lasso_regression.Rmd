@@ -1,0 +1,12 @@
+---
+title: "Lasso Regression"
+author: "Philipp Wyss"
+date: "2024-04-23"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Load Data
