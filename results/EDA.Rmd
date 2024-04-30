@@ -9,65 +9,103 @@ output: pdf_document
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+```{r}
+library(lubridate) #get informations on date
+library(dplyr) #from tidyverse to tidy up the data
+library(ggplot2) #For nicer plots
+library(gridExtra) #To overlay the barplots
+```
 ## Exploratory Data analysis
 
 ```{r}
 data <- read.csv("df_agg_hourly.csv", header = TRUE)
+
+data <- data %>%
+  select(Datetime, VELO_IN, VELO_OUT, FUSS_IN, FUSS_OUT, Hr...Hr., RainDur..min., StrGlo..W.m2., T...C., WD...., Standort) #I selected only what I deemed important for the EDA
+
+data$Datetime <- as.POSIXlt(data$Datetime)
+data$Year <- year(data$Datetime)
+data$Month <- month(data$Datetime)
+data$Day <- day(data$Datetime)
+data$Hour <- hour(data$Datetime)
+data$Datetime <- NULL
+
+#Aggregation by hours only
+data_hours <- data %>%
+  group_by(Year, Month, Day, Standort) %>%
+  summarise(VELO_IN=sum(VELO_IN), VELO_OUT=sum(VELO_OUT), FUSS_IN=sum(FUSS_IN), FUSS_OUT=sum(FUSS_OUT), Hr...Hr.=mean(Hr...Hr., na.rm = TRUE), RainDur..min.=mean(RainDur..min., na.rm = TRUE), StrGlo..W.m2.=mean(StrGlo..W.m2., na.rm = TRUE), T...C.=mean(T...C., na.rm = TRUE), WD....=mean(WD...., na.rm = TRUE))
+
+#Standort and hours aggregated
+data_SO_hours <- data %>%
+  group_by(Year, Month, Day) %>%
+  summarise(VELO_IN=sum(VELO_IN), VELO_OUT=sum(VELO_OUT), FUSS_IN=sum(FUSS_IN), FUSS_OUT=sum(FUSS_OUT), Hr...Hr.=mean(Hr...Hr., na.rm = TRUE), RainDur..min.=mean(RainDur..min., na.rm = TRUE), StrGlo..W.m2.=mean(StrGlo..W.m2., na.rm = TRUE), T...C.=mean(T...C., na.rm = TRUE), WD....=mean(WD...., na.rm = TRUE))
+
+#Month and Standort aggregated
+data_SO_month <- data %>%
+  group_by(Year, Month) %>%
+  summarise(VELO_IN=sum(VELO_IN), VELO_OUT=sum(VELO_OUT), FUSS_IN=sum(FUSS_IN), FUSS_OUT=sum(FUSS_OUT), Hr...Hr.=mean(Hr...Hr., na.rm = TRUE), RainDur..min.=mean(RainDur..min., na.rm = TRUE), StrGlo..W.m2.=mean(StrGlo..W.m2., na.rm = TRUE), T...C.=mean(T...C., na.rm = TRUE), WD....=mean(WD...., na.rm = TRUE))
 ```
 
 ```{r}
-#agregating by days
-library(dplyr)
-data2 <- data %>%
-  mutate(group_id = rep(1:ceiling(n()/24), each = 24, length.out = n()))
+custom <- c("Jan.", "Feb.", "Mar.", "Apr.", "May", "Jun.", "Jul.","Aug.", "Sep.", "Oct.", "Nov.", "Dec.")
+
+#Barplot for the velo in during 2023
+bar_plot_velo_in <- ggplot(data = data_SO_month, aes(x= Month, y=VELO_IN))+
+  geom_bar(stat="identity", fill="lightblue", alpha = 0.7) +
+  theme_minimal() +
+  scale_x_discrete(limits=custom)
+
+#barplot for the velo out during 2023
+bar_plot_velo_out <- ggplot(data = data_SO_month, aes(x= Month, y=VELO_OUT))+
+  geom_bar(stat="identity", fill="coral2", alpha = 0.7) +
+  theme_minimal()+
+  scale_x_discrete(limits=custom)
 
 
-
-# Now use group_by() and summarize() to aggregate by 'group_id'
-data2 <- data2 %>%
-  group_by(group_id) %>%
-  summarize(
-    across(.cols = everything(), .fns = function(x) {
-      if (is.numeric(x)) {
-        mean(x, na.rm = TRUE)  # Apply mean() to numeric columns
-      } else {
-        first(x)  # Preserve the first value of non-numeric columns
-      }
-    })
-  )
-
-data2 <- select(data2, -group_id)
-```
-
-
-```{r}
-#Agregating by months
-data3 <- data2 %>%
-  mutate(group_id = rep(1:ceiling(n()/30), each = 30, length.out = n()))
-
-
-
-# Now use group_by() and summarize() to aggregate by 'group_id'
-data3 <- data3 %>%
-  group_by(group_id) %>%
-  summarize(
-    across(.cols = everything(), .fns = function(x) {
-      if (is.numeric(x)) {
-        mean(x, na.rm = TRUE)  # Apply mean() to numeric columns
-      } else {
-        first(x)  # Preserve the first value of non-numeric columns
-      }
-    })
-  )
-
-data3 <- select(data3, -group_id)
 ```
 
 
 ```{r}
-plot(data3$VELO_IN, type = "l")
-lines(data3$VELO_OUT, col="red")
-lines(data3$FUSS_IN, col = "green")
-lines(data3$FUSS_OUT, col = "blue")
+#combined plot for both in and out velos
+overlay_velo_plot <- ggplot() +
+  geom_bar(data = data_SO_month, aes(x = Month, y = VELO_IN, fill = "IN"), stat = "identity", alpha = 0.7, position = "dodge") +
+  geom_bar(data = data_SO_month, aes(x = Month, y = VELO_OUT, fill = "OUT"), stat = "identity", alpha = 0.7, position = "dodge") +
+  labs(title = "Velo in and out in 2023", x = "Month", y = "Velo", fill = "Group") +
+  scale_fill_manual(name = "Group", values = c("IN" = "skyblue", "OUT" = "coral")) +
+  scale_x_discrete(limits=custom)+
+  theme_minimal()
+
+
+print(overlay_velo_plot)
+
+```
+
+```{r}
+#Fuss data plotted by months for fuss in and out in 2023
+
+overlay_fuss_plot <- ggplot() +
+  geom_bar(data = data_SO_month, aes(x = Month, y = FUSS_IN, fill = "IN"), stat = "identity", alpha = 0.7, position = "dodge") +
+  geom_bar(data = data_SO_month, aes(x = Month, y = FUSS_OUT, fill = "OUT"), stat = "identity", alpha = 0.7, position = "dodge") +
+  labs(title = "Pedestrians in and out in 2023", x = "Month", y = "Pedestrians", fill = "Group") +
+  scale_fill_manual(name = "Group", values = c("IN" = "lightgreen", "OUT" = "mediumpurple1")) +
+  scale_x_discrete(limits=custom)+
+  theme_minimal()
+
+
+print(overlay_fuss_plot)
+
+```
+
+
+
+
+```{r}
+#Heatmap maybe with what ??
+# -> velo and temperature + rain ?
+
+```
+
+```{r}
+#Table of summaries for the average velo and fuss traffic alongside the average rain and temperature, maybe per month or just over the year...
 ```
 
