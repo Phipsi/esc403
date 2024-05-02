@@ -49,7 +49,9 @@ It is a long table holding following measurements (**Unit**):
 | global radiation | StrGlo |
 | temperature | T |
 | relative humidity | Hr |
-| wind direction | ? |
+| wind direction | WD |
+| Vector wind scalar | WVs |
+| Vector wind velocity | WVv |
 
 For example after successful import `weather.head()` gives you following export:
 
