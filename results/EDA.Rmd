@@ -14,6 +14,7 @@ library(lubridate) #get informations on date
 library(dplyr) #from tidyverse to tidy up the data
 library(ggplot2) #For nicer plots
 library(gridExtra) #To overlay the barplots
+library(corrplot) #To do correlation heatmap
 ```
 ## Exploratory Data analysis
 
@@ -24,7 +25,7 @@ data <- data %>%
   select(Datetime, VELO_IN, VELO_OUT, FUSS_IN, FUSS_OUT, Hr...Hr., RainDur..min., StrGlo..W.m2., T...C., WD...., Standort) #I selected only what I deemed important for the EDA
 
 data$Datetime <- as.POSIXlt(data$Datetime)
-data$Year <- year(data$Datetime)
+#data$Year <- year(data$Datetime)
 data$Month <- month(data$Datetime)
 data$Day <- day(data$Datetime)
 data$Hour <- hour(data$Datetime)
@@ -32,17 +33,23 @@ data$Datetime <- NULL
 
 #Aggregation by hours only
 data_hours <- data %>%
-  group_by(Year, Month, Day, Standort) %>%
+  group_by(Month, Day, Standort) %>%
   summarise(VELO_IN=sum(VELO_IN), VELO_OUT=sum(VELO_OUT), FUSS_IN=sum(FUSS_IN), FUSS_OUT=sum(FUSS_OUT), Hr...Hr.=mean(Hr...Hr., na.rm = TRUE), RainDur..min.=mean(RainDur..min., na.rm = TRUE), StrGlo..W.m2.=mean(StrGlo..W.m2., na.rm = TRUE), T...C.=mean(T...C., na.rm = TRUE), WD....=mean(WD...., na.rm = TRUE))
 
 #Standort and hours aggregated
 data_SO_hours <- data %>%
-  group_by(Year, Month, Day) %>%
+  group_by(Month, Day) %>%
+  summarise(VELO_IN=sum(VELO_IN), VELO_OUT=sum(VELO_OUT), FUSS_IN=sum(FUSS_IN), FUSS_OUT=sum(FUSS_OUT), Hr...Hr.=mean(Hr...Hr., na.rm = TRUE), RainDur..min.=mean(RainDur..min., na.rm = TRUE), StrGlo..W.m2.=mean(StrGlo..W.m2., na.rm = TRUE), T...C.=mean(T...C., na.rm = TRUE), WD....=mean(WD...., na.rm = TRUE))
+
+
+# Aggregated by month
+data_month <- data %>%
+  group_by(Month, Standort) %>%
   summarise(VELO_IN=sum(VELO_IN), VELO_OUT=sum(VELO_OUT), FUSS_IN=sum(FUSS_IN), FUSS_OUT=sum(FUSS_OUT), Hr...Hr.=mean(Hr...Hr., na.rm = TRUE), RainDur..min.=mean(RainDur..min., na.rm = TRUE), StrGlo..W.m2.=mean(StrGlo..W.m2., na.rm = TRUE), T...C.=mean(T...C., na.rm = TRUE), WD....=mean(WD...., na.rm = TRUE))
 
 #Month and Standort aggregated
 data_SO_month <- data %>%
-  group_by(Year, Month) %>%
+  group_by(Month) %>%
   summarise(VELO_IN=sum(VELO_IN), VELO_OUT=sum(VELO_OUT), FUSS_IN=sum(FUSS_IN), FUSS_OUT=sum(FUSS_OUT), Hr...Hr.=mean(Hr...Hr., na.rm = TRUE), RainDur..min.=mean(RainDur..min., na.rm = TRUE), StrGlo..W.m2.=mean(StrGlo..W.m2., na.rm = TRUE), T...C.=mean(T...C., na.rm = TRUE), WD....=mean(WD...., na.rm = TRUE))
 ```
 
@@ -62,15 +69,18 @@ bar_plot_velo_out <- ggplot(data = data_SO_month, aes(x= Month, y=VELO_OUT))+
   scale_x_discrete(limits=custom)
 
 
+
 ```
 
 
 ```{r}
 #combined plot for both in and out velos
-overlay_velo_plot <- ggplot() +
-  geom_bar(data = data_SO_month, aes(x = Month, y = VELO_IN, fill = "IN"), stat = "identity", alpha = 0.7, position = "dodge") +
-  geom_bar(data = data_SO_month, aes(x = Month, y = VELO_OUT, fill = "OUT"), stat = "identity", alpha = 0.7, position = "dodge") +
-  labs(title = "Velo in and out in 2023", x = "Month", y = "Velo", fill = "Group") +
+overlay_velo_plot <- ggplot(data_SO_month, aes(x=Month)) +
+  geom_bar(aes(y = VELO_IN, fill = "IN"), stat = "identity", alpha = 0.7, position = "dodge") +
+  geom_bar(aes(y = VELO_OUT, fill = "OUT"), stat = "identity", alpha = 0.7, position = "dodge") +
+  scale_y_continuous(
+    name = "VELO")+
+  labs(title = "Velo in and out in 2023", x = "Month", fill = "Group") +
   scale_fill_manual(name = "Group", values = c("IN" = "skyblue", "OUT" = "coral")) +
   scale_x_discrete(limits=custom)+
   theme_minimal()
@@ -101,11 +111,42 @@ print(overlay_fuss_plot)
 
 ```{r}
 #Heatmap maybe with what ??
-# -> velo and temperature + rain ?
+# -> velo + fussand temperature + rain ?
+cor_data_frame_SO_month <- data_SO_month %>%
+  select(Month, VELO_IN, VELO_OUT, FUSS_IN, FUSS_OUT,RainDur..min., T...C. )
 
+cor_matrix_SO_month <- cor(cor_data_frame_SO_month)
+
+corrplot(cor_matrix_SO_month, method = "color", type = "upper", 
+         tl.col = "black", tl.srt = 45,
+         addrect = 2)
 ```
 
 ```{r}
 #Table of summaries for the average velo and fuss traffic alongside the average rain and temperature, maybe per month or just over the year...
+
+cor_data_frame_SO_month
 ```
+
+
+```{r}
+#Plot of January to show the seasonality due to the days of the week
+
+#days_of_week <- c("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat","Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Mon", "Tue", "Wed")
+
+january <- data_SO_hours %>%
+  filter(Month %in% 1)
+
+weekly_plot <- ggplot() +
+  geom_bar(data = january, aes(x = Day, y = VELO_IN, fill = "IN"), stat = "identity", alpha = 0.7, position = "dodge") +
+  geom_bar(data = january, aes(x = Day, y = VELO_OUT, fill = "OUT"), stat = "identity", alpha = 0.7, position = "dodge") +
+  labs(title = "Bycicles in and out in January", x = "Days", y = "VELO", fill = "Group") +
+  scale_fill_manual(name = "Group", values = c("IN" = "lightblue", "OUT" = "coral2")) +
+  theme_minimal()
+
+weekly_plot
+```
+
+
+
 
