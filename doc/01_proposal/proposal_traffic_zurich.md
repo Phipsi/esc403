@@ -42,14 +42,14 @@ The data set includes hourly values from 1992, divided into annual files. The va
 - **Status** : Status
 
 It is a long table holding following measurements (**Unit**):
-| Unit |
-| ---- |
-| air pressure |
-| precipitation duration |
-| global radiation |
-| temperature |
-| relative humidity |
-| wind direction |
+| Parameter | Parameter Short |
+| ---- | ---- |
+| air pressure | p |
+| rain precipitation duration | RainDur |
+| global radiation | StrGlo |
+| temperature | T |
+| relative humidity | Hr |
+| wind direction | ? |
 
 For example after successful import `weather.head()` gives you following export:
 
