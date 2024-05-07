@@ -7,6 +7,77 @@ output: html_document
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+
+# Load libraries
+library(tidyverse)
+library(lubridate)
 ```
 
 ## Load Data
+Loading the hourly aggregated dataset.
+```{r}
+dat <- read.csv('../../results/df_agg_hourly.csv')
+```
+
+## Data Preperation
+
+What we are doing here:
+1. Cast Date and Time Variables into proper datatypes
+2. Calculate the total traffic (IN + OUT)
+3. Filter only for for Standort == 20 (Militärbrücke / Langstrasse)
+4. Select only variables that are of interest
+
+```{r}
+prep <- dat %>% mutate(
+  # Cast Date & Datetime to proper Timestamps using libridate
+  Date = lubridate::ymd(Date),
+  Datetime = lubridate::ymd_hm(Datetime),
+  Weekday = weekdays(Date),
+  # Convert Time to integer
+  Time = as.integer(substr(Time, 1, 2)),
+  # Calculate total traffic
+  VELO_TOT = VELO_IN + VELO_OUT,
+  FUSS_TOT = FUSS_IN + FUSS_OUT
+) %>%
+  # Filter for Standort 20 (Militärbrücke / Langstrasse)
+  filter(Standort == 20) %>%
+  # Select only variables that are of interest
+  select(Standort,
+         Date,
+         Time,
+         Datetime,
+         Weekday,
+         # Actual measurements
+         VELO_TOT,
+         FUSS_TOT,
+         # Weather variables
+         Hr...Hr.,
+         RainDur..min.,
+         StrGlo..W.m2.,
+         T...C.,
+         WD....,
+         WVs..m.s.,
+         WVv..m.s.,
+         p..hPa.,
+         # Additional lacations descriptive variables
+         bezeichnung,
+         richtung_in,
+         richtung_out,
+         korrekturfaktor)
+
+```
+Plot the results:
+
+```{r}
+prep %>%
+  filter(VELO_TOT == 0 & FUSS_TOT > 0) %>%
+  group_by(Date, Weekday) %>%
+  summarise(Traffic = sum(FUSS_TOT)) %>%
+  ggplot(aes(x = Date, y = Traffic, col = Weekday)) + 
+  geom_point() +
+  geom_line() +
+  theme_classic() +
+  ggtitle("Foot traffic at Militärstrasse by day [Jan - March 2023]")
+```
+
+
