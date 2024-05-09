@@ -2,32 +2,67 @@
 title: "Lasso Regression"
 author: "Philipp Wyss"
 date: "2024-04-23"
-output: html_document
+output: 
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float: true
+    number_sections: true
+    smooth_scroll: false
+    df_print: paged
+    code_folding: hide
+
+    highlight: default
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE,
+                      warning = FALSE,
+                      message = FALSE,
+                      fig.width=12, fig.height=6,
+                      fig.path='../../results/fig_lasso_regression/',
+                      cache = TRUE,
+                      cache.path = './cache/')
 
 # Load libraries
 library(tidyverse)
 library(lubridate)
+library(glmnet)
+library(zoo)
 ```
 
-## Load Data
+# Load Data
 Loading the hourly aggregated dataset.
-```{r}
+```{r read data}
 dat <- read.csv('../../results/df_agg_hourly.csv')
+# dat <- read.csv('results/df_agg_hourly.csv')
 ```
 
-## Data Preperation
+Next we decide which location to use. We will use the location with the most data available.
+```{r select location}
+select_standort <- 1037
+
+# Deciding which location to use
+dat %>% 
+  filter(Standort == select_standort) %>%
+  select(Standort, bezeichnung) %>%
+  unique()
+
+# Check the time range of the data
+range(dat[dat$Standort == select_standort, ]$Datetime)
+```
+
+# Data Preperation
+
+**Attention**: Most data preperation is taking place in `📁 ./src/data_preparation.ipynb`.
 
 What we are doing here:
 1. Cast Date and Time Variables into proper datatypes
-2. Calculate the total traffic (IN + OUT)
-3. Filter only for for Standort == 20 (Militärbrücke / Langstrasse)
+2. Calculate the total traffic (`VELO_TOT` = `VELO_IN` + `VELO_OUT`)
+3. Filter for `Standort == 1037` (Hardbrücke Süd (Seite HB))
 4. Select only variables that are of interest
 
-```{r}
+```{r data preperation}
 prep <- dat %>% mutate(
   # Cast Date & Datetime to proper Timestamps using libridate
   Date = lubridate::ymd(Date),
@@ -40,7 +75,7 @@ prep <- dat %>% mutate(
   FUSS_TOT = FUSS_IN + FUSS_OUT
 ) %>%
   # Filter for Standort 20 (Militärbrücke / Langstrasse)
-  filter(Standort == 20) %>%
+  filter(Standort == 1037) %>%
   # Select only variables that are of interest
   select(Standort,
          Date,
@@ -63,21 +98,97 @@ prep <- dat %>% mutate(
          bezeichnung,
          richtung_in,
          richtung_out,
-         korrekturfaktor)
+         korrekturfaktor) %>%
+  # Transform Weekday to ordered factor starting with Monday
+  mutate(Weekday = factor(Weekday, 
+                          levels = c("Montag", "Dienstag", 
+                                     "Mittwoch", "Donnerstag", 
+                                     "Freitag", "Samstag", "Sonntag"))) %>%
+  # Create new month variable
+  mutate(Month = lubridate::month(Date, label = TRUE))
+
+# Check the first few rows
+prep %>% 
+  select(Standort, bezeichnung, Weekday, Date, Time, VELO_TOT, FUSS_TOT) %>%
+  head()
+```
+
+
+# EDA
+Visualizing the data to get a better understanding of the data.
+
+**Attention**: All plots and images generated here will be saved in `📁 ./results/fig_lasso_regression/`.
+
+## Timeseries
+
+```{r rolling mean daily traffic}
+# Calculate the rolling mean
+prep %>%
+  filter(FUSS_TOT == 0 & VELO_TOT > 0) %>%
+  group_by(Date) %>%
+  summarise(Traffic = sum(VELO_TOT)) %>%
+  mutate(rolling_mean = zoo::rollmean(Traffic, k = 7, fill = NA)) %>%
+  ggplot(aes(x = Date, y = Traffic)) +
+  geom_point() +
+  geom_line(aes(y = rolling_mean), col = "red") +
+  theme_classic() +
+  ylab("Velo Traffic") +
+  ggtitle(paste("Bike traffic at", prep$bezeichnung[1], "by day from Jan - Dec 2023"), subtitle = "Rolling mean for all observations")
 
 ```
-Plot the results:
 
-```{r}
+```{r custom weekday colours}
+weekday_colours <- c(
+      "Montag" = "#DFE2E8",
+      "Dienstag" = "#AEB7C6",
+      "Mittwoch" = "#9EA8BA",
+      "Donnerstag" = "#8D99AE",
+      "Freitag" = "#808EA5",
+      "Samstag" = "#F47382",
+      "Sonntag" = "#D90429")
+```
+
+
+```{r plot timeseries daily traffic, fig.width=8, fig.height=5}
 prep %>%
-  filter(VELO_TOT == 0 & FUSS_TOT > 0) %>%
+  filter(FUSS_TOT == 0 & VELO_TOT > 0) %>%
+  # Group by Date
   group_by(Date, Weekday) %>%
-  summarise(Traffic = sum(FUSS_TOT)) %>%
+  # Summarize the total traffic
+  summarise(Traffic = sum(VELO_TOT)) %>%
+  # Plot the timeseries
   ggplot(aes(x = Date, y = Traffic, col = Weekday)) + 
   geom_point() +
   geom_line() +
   theme_classic() +
-  ggtitle("Foot traffic at Militärstrasse by day [Jan - March 2023]")
+  ylab("Velo Traffic") +
+  ggtitle(paste("Bike traffic at", prep$bezeichnung[1], "by day from Jan - Dec 2023")) +
+  theme(legend.position = "bottom") + 
+  # Manualy set color scale
+  scale_colour_manual(
+    values = weekday_colours
+  )
 ```
 
 
+## Boxplot
+```{r boxplot monthly traffic, fig.width=8, fig.height=5}
+prep %>%
+  # Select only the variables we need
+  select(Month, Weekday, VELO_TOT) %>%
+  # Filter only Jan & Feb
+  filter(Month %in% c("Apr", "Jul", "Nov")) %>%
+  # Plot the boxplot
+  ggplot(aes(x = Month, y = VELO_TOT, col = Weekday)) +
+  geom_boxplot() +
+  theme_classic() +
+  ylab("Velo Traffic") +
+  ggtitle(paste("Monthly Bike traffic at", prep$bezeichnung[1], "by month [Jan - Dec 2023]")) +
+    theme(legend.position = "bottom") + 
+    # Manualy set color scale
+  scale_colour_manual(
+    values = weekday_colours
+  )
+```
+
+# Lasso Regression Model
