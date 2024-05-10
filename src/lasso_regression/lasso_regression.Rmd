@@ -19,7 +19,7 @@ output:
 knitr::opts_chunk$set(echo = TRUE,
                       warning = FALSE,
                       message = FALSE,
-                      fig.width=12, fig.height=6,
+                      fig.width=9, fig.height=5,
                       fig.path='../../results/fig_lasso_regression/',
                       cache = TRUE,
                       cache.path = './cache/')
@@ -29,6 +29,8 @@ library(tidyverse)
 library(lubridate)
 library(glmnet)
 library(zoo)
+library(xts)
+library(forecast)
 ```
 
 # Load Data
@@ -40,6 +42,7 @@ dat <- read.csv('../../results/df_agg_hourly.csv')
 
 Next we decide which location to use. We will use the location with the most data available.
 ```{r select location}
+# Select the location
 select_standort <- 1037
 
 # Deciding which location to use
@@ -127,13 +130,21 @@ prep %>%
   filter(FUSS_TOT == 0 & VELO_TOT > 0) %>%
   group_by(Date) %>%
   summarise(Traffic = sum(VELO_TOT)) %>%
+  # Calculate the rolling mean
   mutate(rolling_mean = zoo::rollmean(Traffic, k = 7, fill = NA)) %>%
+  # Calculate the rolling std
+  mutate(rolling_std = zoo::rollapply(Traffic, width = 7, FUN = sd, fill = NA)) %>%
+  # Plot the timeseries
   ggplot(aes(x = Date, y = Traffic)) +
   geom_point() +
-  geom_line(aes(y = rolling_mean), col = "red") +
+  geom_line(aes(x = Date, y = rolling_std, colour = "rolling std")) +
+  #geom_ribbon(aes(ymin = rolling_mean - rolling_std, ymax = rolling_mean + rolling_std), fill = "darkgreen", alpha = 0.2) +
+  geom_line(aes(x = Date, y = rolling_mean, colour = "rolling mean")) +
+  scale_color_manual(name = "", values = c("rolling std" = "darkgreen", "rolling mean" = "red")) +
   theme_classic() +
+  theme(legend.position = "bottom") + 
   ylab("Velo Traffic") +
-  ggtitle(paste("Bike traffic at", prep$bezeichnung[1], "by day from Jan - Dec 2023"), subtitle = "Rolling mean for all observations")
+  ggtitle(paste("Bike traffic at", prep$bezeichnung[1], "by day from Jan - Dec 2023"), subtitle = "Rolling mean and standard deviation for all observations")
 
 ```
 
@@ -149,7 +160,7 @@ weekday_colours <- c(
 ```
 
 
-```{r plot timeseries daily traffic, fig.width=8, fig.height=5}
+```{r plot timeseries daily traffic}
 prep %>%
   filter(FUSS_TOT == 0 & VELO_TOT > 0) %>%
   # Group by Date
@@ -172,7 +183,7 @@ prep %>%
 
 
 ## Boxplot
-```{r boxplot monthly traffic, fig.width=8, fig.height=5}
+```{r boxplot monthly traffic}
 prep %>%
   # Select only the variables we need
   select(Month, Weekday, VELO_TOT) %>%
@@ -183,7 +194,7 @@ prep %>%
   geom_boxplot() +
   theme_classic() +
   ylab("Velo Traffic") +
-  ggtitle(paste("Monthly Bike traffic at", prep$bezeichnung[1], "by month [Jan - Dec 2023]")) +
+  ggtitle(paste("Monthly bike traffic at", prep$bezeichnung[1], "by month from Jan - Dec 2023")) +
     theme(legend.position = "bottom") + 
     # Manualy set color scale
   scale_colour_manual(
@@ -191,4 +202,64 @@ prep %>%
   )
 ```
 
-# Lasso Regression Model
+
+## Correlation Matrix
+Relative humidity and temperature are highly correlated. This is expected as the relative humidity is a function of the temperature. We will remove the relative humidity from the model.
+```{r correlation matrix}
+# Calculate the correlation matrix
+cor_matrix <- prep %>%
+  select(VELO_TOT, Hr...Hr., RainDur..min., StrGlo..W.m2., T...C., WD...., WVs..m.s., WVv..m.s., p..hPa.) %>%
+  cor()
+
+print(round(cor_matrix[1,],4))
+
+# Plot the correlation matrix
+corrplot::corrplot(cor_matrix, method = "color", type = "upper", order = "hclust", tl.col = "black", tl.srt = 45)
+
+```
+
+
+## Plot RainDur
+
+```{r plot raindur}
+# Plot RainDur and StrGlo as a function of Datetime
+# First transfrom the data to long format
+# Then plot the values as bars and add facet_wrap by the variable
+prep %>%
+  head(200) %>%
+  pivot_longer(cols = c(RainDur..min., StrGlo..W.m2.), 
+              names_to = "Variable", 
+              values_to = "Value") %>%
+  ggplot(aes(x = Datetime, y = Value)) +
+  geom_bar(stat = "identity") +
+  facet_wrap(vars(Variable), ncol = 1) +
+  theme_classic() +
+  ylab("Value") +
+  ggtitle(paste("Rain duration and global radiation at", prep$bezeichnung[1], "by day in January")) +
+  theme(legend.position = "bottom")
+```
+
+# Time Series Analysis
+First we create a time series object
+
+```{r create time series object}
+# Create a time series object using xts
+Velo <- xts::xts(x = prep$VELO_TOT, 
+               order.by = prep$Datetime, 
+               frequency = 8758)
+
+# Plot the time series
+plot(Velo)
+```
+
+### ACF
+The ACF statistic measures the correlation between xt and xt+k where k is the number of lead periods into the future. It measures the correlation between any two points based on a given interval. It is not strictly equivalent to the Pearson product moment correlation. In R, ACF is calculated and visualized with the function “acf”.
+
+```{r autocorrelation function}
+acf(Velo)
+```
+
+```{r partial autocorrelation function}
+
+```
+
