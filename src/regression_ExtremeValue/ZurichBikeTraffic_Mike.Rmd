@@ -1,0 +1,429 @@
+---
+title: "Zurich Bike Traffic"
+author: "Mike Krähenbühl"
+date: "2024-04-22"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Exploratory Data Analysis
+
+
+
+```{r}
+
+# article qualitatively describing the counting concept
+# https://www.stadt-zuerich.ch/ted/de/index/taz/verkehr/webartikel/webartikel_velozaehlungen.html
+
+# raw dataset 
+#https://data.stadt-zuerich.ch/dataset/ted_taz_verkehrszaehlungen_werte_fussgaenger_velo
+
+data <- read.csv('../../results/df_agg_hourly.csv', header = TRUE)
+
+head(data)
+str(data)
+
+data$velo_traffic <- data$VELO_IN + data$VELO_OUT
+
+
+
+# Create month column
+data$Month <- format(as.Date(data$Date), "%m")
+
+
+# Create day column
+data$Day <- format(as.Date(data$Date), "%d")
+
+# Create a weekday column
+data$Weekday <- as.factor(weekdays(as.Date(data$Date)))
+
+
+# Quaibrücke Süd (Seeseite)
+# POINT (2683407.5 1246794.6)
+
+
+sort(unique(data$Nord))
+sort(unique(data$Ost))
+
+unique(data$bezeichnung)
+table(data$bezeichnung)
+
+# select a station with only velo traffic
+one_station <- data[data$bezeichnung == "Langstrasse (Unterführung Nord)",]
+
+
+library(dplyr)
+
+# for some Datetimes we have two rows, one for bike and one for foot.
+# We only select the Standort 2989 as this one is for velo and the other for foot.
+one_station_velo <- one_station[one_station$Standort==2989,]
+
+
+#velo_traff <- one_station[,c("Datetime", "velo_traffic")]
+
+```
+
+
+
+Now we have a clean dataset for the station langstrasse to investigate the velo traffic. The amount of bikes in the two direction is very different because there are multiple measurement points at the langstrasse unterführung. This one is "Unterführung Nord".
+
+```{r}
+
+
+colSums(one_station_velo[,c("VELO_IN", "VELO_OUT")])
+
+
+```
+
+
+
+```{r}
+library(ggplot2)
+library(ggcorrplot)
+library(tidyr)
+
+
+# Calculate correlation matrix
+
+correlation_matrix <- cor(na.omit(subset(one_station_velo, select = c("velo_traffic", "Hr...Hr.", "RainDur..min.", "StrGlo..W.m2.", "T...C." , "WD...." , "WVs..m.s.","WVv..m.s.","p..hPa."))))
+rownames(correlation_matrix) <- colnames(correlation_matrix)
+
+dim(correlation_matrix)
+
+library(heatmaply)
+heatmap(correlation_matrix,
+        Rowv = NA, Colv = NA,
+        col = heat.colors(256),
+        scale = "none",
+        margins = c(5, 10),
+        main = "Correlation Heatmap")
+
+
+barplot(correlation_matrix[1,], las=2, 
+        main= " Correlation with velo_traffic",
+        ylab="Correlation")
+
+
+```
+
+The relative humidity seems to have the highest (negative) correlation with velo_traffic. Surprisingly, the rain duration is only weakly correlated. The global radiation and the temperature are positively correlated with velo_traffic.
+
+
+
+
+## Regression model
+
+
+First we analyze the outcome variable velo_traffic. Since it is count data, a poisson regression might be appropriate. Let's check the assumptions:
+
+
+* Response follows poisson distribution: Yes, count data per time unit (hour)
+* Independence: Yes, the velo_traffic depends on time and other variables but not necessarily on previous velo_traffic.
+*
+* Mean = Variance: this assumption is clearly not met since variance i smuch larger than mean.
+
+```{r}
+
+
+# looks like poisson (makes sense because counts per time unit)
+hist(one_station_velo$velo_traffic)
+plot(seq(1,length(one_station_velo$velo_traffic)), log(1/one_station_velo$velo_traffic))
+
+# var > mean --> this means we have overdispersion
+mean(one_station_velo$velo_traffic)
+var(one_station_velo$velo_traffic)
+
+
+```
+
+Since we have over-dispersion (variance > mean) a Poisson regression cannot model  the data because it has only one parameter $\lambda$. Therefore the negative binomial distribution, which is a generalization of the poisson regression that has one additional parameter to model the over-dispersion.
+
+
+## Negative binomial regression
+
+
+
+```{r}
+
+# weather data
+# Luftdruck (p), die Niederschlagsdauer (RainDur), die Globalstrahlung (StrGlo), die Temperatur (T), die relative Luftfeuchtigkeit (Hr), die Windrichtung, die Vektor und Skalar Windgeschwindigkeit.
+library(MASS)
+set.seed(123)
+model1<-glm.nb(velo_traffic ~ Weekday + RainDur..min., data=one_station_velo)
+
+
+summary(model1)
+
+prediction_errors <- (predict(model1, one_station_velo, type="response") - one_station_velo$velo_traffic)^2
+
+ sum(length(which(is.na(prediction_errors)) ))
+ 
+ sqrt(mean(na.omit(prediction_errors)))
+
+
+```
+
+```{r}
+
+# weather data
+# Luftdruck (p), die Niederschlagsdauer (RainDur), die Globalstrahlung (StrGlo), die Temperatur (T), die relative Luftfeuchtigkeit (Hr), die Windrichtung, die Vektor und Skalar Windgeschwindigkeit.
+library(MASS)
+set.seed(123)
+glm_nb_2<-glm.nb(velo_traffic ~ Weekday + StrGlo..W.m2. + RainDur..min., data=one_station_velo)
+
+
+summary(glm_nb_2)
+
+prediction_errors <- (predict(glm_nb_2, one_station_velo, type="response") - one_station_velo$velo_traffic)^2
+
+ sum(length(which(is.na(prediction_errors)) ))
+ 
+ sqrt(mean(na.omit(prediction_errors)))
+
+
+```
+
+
+```{r}
+
+# weather data
+# Luftdruck (p), die Niederschlagsdauer (RainDur), die Globalstrahlung (StrGlo), die Temperatur (T), die relative Luftfeuchtigkeit (Hr), die Windrichtung, die Vektor und Skalar Windgeschwindigkeit.
+library(MASS)
+set.seed(123)
+glm_nb_3<-glm.nb(velo_traffic ~ as.factor(Time) + Weekday + StrGlo..W.m2. + RainDur..min., data=one_station_velo)
+
+
+summary(glm_nb_3)
+
+prediction_errors <- (predict(glm_nb_3, one_station_velo, type="response") - one_station_velo$velo_traffic)^2
+
+ sum(length(which(is.na(prediction_errors)) ))
+ 
+ sqrt(mean(na.omit(prediction_errors)))
+
+
+```
+
+
+
+
+
+```{r}
+
+# weather data
+# Luftdruck (p), die Niederschlagsdauer (RainDur), die Globalstrahlung (StrGlo), die Temperatur (T), die relative Luftfeuchtigkeit (Hr), die Windrichtung, die Vektor und Skalar Windgeschwindigkeit.
+library(MASS)
+set.seed(123)
+glm_nb_4 <-glm.nb(velo_traffic ~ as.factor(Time) + Hr...Hr. + Weekday + StrGlo..W.m2. + T...C. + RainDur..min., data=one_station_velo)
+
+
+summary(glm_nb_4)
+
+prediction_errors <- (predict(glm_nb_4, one_station_velo, type="response") - one_station_velo$velo_traffic)^2
+
+ sum(length(which(is.na(prediction_errors)) ))
+ 
+ sqrt(mean(na.omit(prediction_errors)))
+
+
+```
+
+
+
+## Poisson regression
+
+
+
+
+```{r}
+
+# weather data
+# Luftdruck (p), die Niederschlagsdauer (RainDur), die Globalstrahlung (StrGlo), die Temperatur (T), die relative Luftfeuchtigkeit (Hr), die Windrichtung, die Vektor und Skalar Windgeschwindigkeit.
+
+set.seed(123)
+model_pois<-glm(velo_traffic ~ Weekday + RainDur..min., family=poisson(link="log"), data=one_station_velo)
+
+summary(model_pois)
+
+
+prediction_errors <- (predict(model_pois, one_station_velo, type="response") - one_station_velo$velo_traffic)^2
+
+ sum(length(which(is.na(prediction_errors)) ))
+ 
+ sqrt(mean(na.omit(prediction_errors)))
+```
+
+
+```{r}
+
+model2 <-glm(velo_traffic ~ Time + RainDur..min.  + T...C., family=poisson(link="log"), data=one_station_velo)
+
+summary(model2)
+
+prediction_errors <- (predict(model2, one_station_velo, type="response") - one_station_velo$velo_traffic)^2
+
+ sum(length(which(is.na(prediction_errors)) ))
+ 
+ sqrt(mean(na.omit(prediction_errors)))
+```
+
+
+Linear model just as a comparison
+
+```{r}
+
+
+lm <-lm(velo_traffic ~ Time + Hr...Hr. + Weekday + StrGlo..W.m2. + T...C. + RainDur..min., data=one_station_velo)
+
+summary(lm)
+
+
+prediction_errors <- (predict(lm, one_station_velo, type="response") - one_station_velo$velo_traffic)^2
+
+ sum(length(which(is.na(prediction_errors)) ))
+ 
+ sqrt(mean(na.omit(prediction_errors)))
+```
+
+
+```{r}
+
+# make a dataframe with new data
+newdata = data.frame(Time = "10:00" , RainDur..min.= 10  , T...C. = 20.62)
+
+# use 'predict()' to run model on new data
+predict(model2, newdata = newdata, type = "response")
+```
+
+
+
+
+
+
+## Model validation (2022 data)
+
+
+```{r}
+
+# load 2022 data
+
+
+data2022 <- read.csv('../../results/df_agg_hourly_2022.csv', header = TRUE)
+
+head(data2022)
+str(data2022)
+
+data2022$velo_traffic <- data2022$VELO_IN + data2022$VELO_OUT
+
+
+
+# Create month column
+data2022$Month <- format(as.Date(data2022$Date), "%m")
+
+
+# Create day column
+data2022$Day <- format(as.Date(data2022$Date), "%d")
+
+# Create a weekday column
+data2022$Weekday <- as.factor(weekdays(as.Date(data2022$Date)))
+
+
+# Quaibrücke Süd (Seeseite)
+# POINT (2683407.5 1246794.6)
+
+
+sort(unique(data2022$Nord))
+sort(unique(data2022$Ost))
+
+unique(data2022$bezeichnung)
+table(data2022$bezeichnung)
+
+# select a station with only velo traffic
+one_station_2022 <- data2022[data2022$bezeichnung == "Langstrasse (Unterführung Nord)",]
+
+
+library(dplyr)
+
+# for some Datetimes we have two rows, one for bike and one for foot.
+# We only select the Standort 2989 as this one is for velo and the other for foot.
+one_station_velo_2022 <- one_station_2022[one_station_2022$Standort==2989,]
+
+```
+
+
+
+
+```{r}
+
+get_pred_error <- function(model){
+  prediction_errors <- (predict(model, one_station_velo_2022, type="response") - one_station_velo_2022$velo_traffic)^2
+
+# sum(length(which(is.na(prediction_errors)) ))
+ 
+ mean_pred_error <- sqrt(mean(na.omit(prediction_errors)))
+ return(mean_pred_error)
+  
+}
+
+# negative binomial
+#predict(model1, one_station_velo_2022, type="response")
+
+get_pred_error(model1)
+
+get_pred_error(glm_nb_2)
+
+get_pred_error(glm_nb_3)
+
+get_pred_error(glm_nb_4)
+
+
+# poisson
+get_pred_error(model_pois)
+
+get_pred_error(model2)
+
+# linear
+get_pred_error(lm)
+
+
+
+
+```
+
+
+
+
+## Extreme value theory
+
+
+We are interested on the maximum amount of bicycles that are likely to pass the measurement station in one hour within the next 10 years. We are not interested in predicting the mean but in the maximum. This might be an important 
+
+```{r}
+
+plot(one_station_velo$velo_traffic, xlab="Time (since 2023-01-01)", ylab="Bike traffic per hour")
+
+plot(velo_traffic ~ Day, data=one_station_velo, xlab="Day", ylab="Bike traffic per hour")
+
+boxplot(velo_traffic ~ Weekday, data=one_station_velo, xlab="Weekday", ylab="Bike traffic per hour")
+
+plot(velo_traffic ~ Month, data=one_station_velo, xlab="Mont", ylab="Bike traffic per hour")
+
+
+lines(1:12, c(by(one_station_velo$velo_traffic, one_station_velo$Month, median)), col=2, lwd=2)
+
+# day and hour with the max traffic per hour in 2023
+one_station_velo[which.max(one_station_velo$velo_traffic),]
+
+```
+
+
+
+### Pareto?
+
+```{r}
+
+
+```
