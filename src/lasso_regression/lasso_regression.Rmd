@@ -31,12 +31,15 @@ library(glmnet)
 library(zoo)
 library(xts)
 library(forecast)
+library(tseries)
+library(glmnet)
 ```
 
 # Load Data
 Loading the hourly aggregated dataset.
 ```{r read data}
-dat <- read.csv('../../results/df_agg_hourly.csv')
+dat2023 <- read.csv('../../results/df_agg_hourly.csv')
+dat2022 <- read.csv('../../results/df_agg_hourly_2022.csv')
 # dat <- read.csv('results/df_agg_hourly.csv')
 ```
 
@@ -45,11 +48,15 @@ Next we decide which location to use. We will use the location with the most dat
 # Select the location
 select_standort <- 1037
 
+# Decide what year to use
+dat <- rbind(dat2022, dat2023)
+
 # Deciding which location to use
 dat %>% 
   filter(Standort == select_standort) %>%
   select(Standort, bezeichnung) %>%
   unique()
+  
 
 # Check the time range of the data
 range(dat[dat$Standort == select_standort, ]$Datetime)
@@ -124,10 +131,31 @@ Visualizing the data to get a better understanding of the data.
 
 ## Timeseries
 
+
+```{r rolling mean hourly traffic}
+prep %>%
+  head(48) %>%
+  # Calculate the rolling mean
+  mutate(rolling_mean = zoo::rollmean(VELO_TOT, k = 3, fill = NA)) %>%
+  # Calculate the rolling std
+  mutate(rolling_std = zoo::rollapply(VELO_TOT, width = 3, FUN = sd, fill = NA)) %>%
+  # Plot the timeseries
+  ggplot(aes(x = Datetime, y = VELO_TOT)) +
+  geom_point() +
+  geom_line(aes(x = Datetime, y = rolling_std, colour = "rolling std")) +
+  #geom_ribbon(aes(ymin = rolling_mean - rolling_std, ymax = rolling_mean + rolling_std), fill = "darkgreen", alpha = 0.2) +
+  geom_line(aes(x = Datetime, y = rolling_mean, colour = "rolling mean")) +
+  scale_color_manual(name = "", values = c("rolling std" = "darkgreen", "rolling mean" = "red")) +
+  theme_classic() +
+  theme(legend.position = "bottom") + 
+  ylab("Velo Traffic") +
+  ggtitle(paste("Bike traffic by hour at", prep$bezeichnung[1], "by day for 1. & 2. January"), subtitle = "Rolling mean and standard deviation for all observations")
+```
+
+Next we aggregate the data on a daily basis an plot the whole year -> is there any trend?
 ```{r rolling mean daily traffic}
 # Calculate the rolling mean
 prep %>%
-  filter(FUSS_TOT == 0 & VELO_TOT > 0) %>%
   group_by(Date) %>%
   summarise(Traffic = sum(VELO_TOT)) %>%
   # Calculate the rolling mean
@@ -144,7 +172,7 @@ prep %>%
   theme_classic() +
   theme(legend.position = "bottom") + 
   ylab("Velo Traffic") +
-  ggtitle(paste("Bike traffic at", prep$bezeichnung[1], "by day from Jan - Dec 2023"), subtitle = "Rolling mean and standard deviation for all observations")
+  ggtitle(paste("Daily Bike traffic at", prep$bezeichnung[1], "by day from Jan - Dec 2023"), subtitle = "Rolling mean and standard deviation for all observations")
 
 ```
 
@@ -188,13 +216,13 @@ prep %>%
   # Select only the variables we need
   select(Month, Weekday, VELO_TOT) %>%
   # Filter only Jan & Feb
-  filter(Month %in% c("Apr", "Jul", "Nov")) %>%
+  filter(Month %in% c("Apr", "Jul", "Nov", "Dez")) %>%
   # Plot the boxplot
   ggplot(aes(x = Month, y = VELO_TOT, col = Weekday)) +
   geom_boxplot() +
   theme_classic() +
   ylab("Velo Traffic") +
-  ggtitle(paste("Monthly bike traffic at", prep$bezeichnung[1], "by month from Jan - Dec 2023")) +
+  ggtitle(paste("Monthly bike traffic at", prep$bezeichnung[1], "by month from Jan - Dec")) +
     theme(legend.position = "bottom") + 
     # Manualy set color scale
   scale_colour_manual(
@@ -240,26 +268,82 @@ prep %>%
 ```
 
 # Time Series Analysis
-First we create a time series object
+The log-transformed timeseries looks lot more **stationary**.
 
 ```{r create time series object}
 # Create a time series object using xts
-Velo <- xts::xts(x = prep$VELO_TOT, 
+velo_ts <- xts::xts(x = prep$VELO_TOT, 
                order.by = prep$Datetime, 
                frequency = 8758)
 
+# Create a log transformed time-series
+velo_log_ts <- log(velo_ts + 1)
+
+# Merge the series
+velo_ts_merge <-  merge.xts(velo_ts, velo_log_ts)
+
 # Plot the time series
-plot(Velo)
+plot.xts(velo_ts_merge, col = c("blue", "red"),
+         multi.panel = TRUE, yaxis.same = FALSE,
+         main = "Original vs Log-transformed series")
 ```
+
+To remove the seasonal pattern, we might want to use a seasonally-adjusted time series. Otherwise, we could also create a dummy variable for the seasonal period (that is, a variable that characterises the weekends).
+
+We will be using the manualy created variable `weekday` (ordered factor) for compensating for the weekends.
+
+### Augmented Dickey-Fuller Test (ADF)
+```{r}
+# original ts
+adf.test(velo_ts)
+```
+
+```{r}
+# Log transformed ts
+adf.test(velo_log_ts)
+```
+
+
 
 ### ACF
 The ACF statistic measures the correlation between xt and xt+k where k is the number of lead periods into the future. It measures the correlation between any two points based on a given interval. It is not strictly equivalent to the Pearson product moment correlation. In R, ACF is calculated and visualized with the function “acf”.
 
 ```{r autocorrelation function}
-acf(Velo)
+acf(velo_ts)
 ```
 
 ```{r partial autocorrelation function}
 
+```
+
+
+## Linear Model
+
+```{r linear regression residuals ,fig.width=9, fig.height=10}
+# Build multivariate linear model
+lm_velo <- prep %>% 
+  filter(year(Datetime) == 2022) %>%
+  lm(VELO_TOT ~ Weekday + Date + Hr...Hr. + RainDur..min. + StrGlo..W.m2. + T...C., data = .)
+
+par(mfrow = c(2,1))
+plot.ts(velo_ts[1:100], main = "Original series")
+plot.ts(lm_velo$residuals[1:100], main = "Residuals")
+```
+
+```{r}
+summary(lm_velo)
+```
+
+```{r predict}
+newx <- prep %>% 
+          filter(year(Datetime) == 2023) %>%
+          select(VELO_TOT, Weekday, Date, Hr...Hr., RainDur..min., StrGlo..W.m2., T...C.)
+
+pred <- predict(lm_velo, newx = newx %>% select(-VELO_TOT))
+```
+
+```{r pred vs real}
+plot(newx$Date, newx$VELO_TOT, type = "l")
+lines(newx$Date, pred[1:8758], type = "l", col = "red")
 ```
 
