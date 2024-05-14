@@ -37,11 +37,14 @@ library(glmnet)
 
 # Load Data
 Loading the hourly aggregated dataset.
-```{r read data}
-dat2023 <- read.csv('../../results/df_agg_hourly.csv')
+```{r read data 2022}
 dat2022 <- read.csv('../../results/df_agg_hourly_2022.csv')
-# dat <- read.csv('results/df_agg_hourly.csv')
 ```
+
+```{r read data 2023}
+dat2023 <- read.csv('../../results/df_agg_hourly_2023.csv')
+```
+
 
 Next we decide which location to use. We will use the location with the most data available.
 ```{r select location}
@@ -68,7 +71,7 @@ range(dat[dat$Standort == select_standort, ]$Datetime)
 
 What we are doing here:
 1. Cast Date and Time Variables into proper datatypes
-2. Calculate the total traffic (`VELO_TOT` = `VELO_IN` + `VELO_OUT`)
+2. Calculate the total traffic (`bike_tot` = `VELO_IN` + `VELO_OUT`)
 3. Filter for `Standort == 1037` (Hardbrücke Süd (Seite HB))
 4. Select only variables that are of interest
 
@@ -80,9 +83,6 @@ prep <- dat %>% mutate(
   Weekday = weekdays(Date),
   # Convert Time to integer
   Time = as.integer(substr(Time, 1, 2)),
-  # Calculate total traffic
-  VELO_TOT = VELO_IN + VELO_OUT,
-  FUSS_TOT = FUSS_IN + FUSS_OUT
 ) %>%
   # Filter for Standort 20 (Militärbrücke / Langstrasse)
   filter(Standort == 1037) %>%
@@ -93,8 +93,8 @@ prep <- dat %>% mutate(
          Datetime,
          Weekday,
          # Actual measurements
-         VELO_TOT,
-         FUSS_TOT,
+         bike_tot,
+         ped_tot,
          # Weather variables
          Hr...Hr.,
          RainDur..min.,
@@ -105,10 +105,7 @@ prep <- dat %>% mutate(
          WVv..m.s.,
          p..hPa.,
          # Additional lacations descriptive variables
-         bezeichnung,
-         richtung_in,
-         richtung_out,
-         korrekturfaktor) %>%
+         bezeichnung) %>%
   # Transform Weekday to ordered factor starting with Monday
   mutate(Weekday = factor(Weekday, 
                           levels = c("Montag", "Dienstag", 
@@ -119,7 +116,7 @@ prep <- dat %>% mutate(
 
 # Check the first few rows
 prep %>% 
-  select(Standort, bezeichnung, Weekday, Date, Time, VELO_TOT, FUSS_TOT) %>%
+  select(Standort, bezeichnung, Weekday, Date, Time, bike_tot, ped_tot) %>%
   head()
 ```
 
@@ -136,11 +133,11 @@ Visualizing the data to get a better understanding of the data.
 prep %>%
   head(48) %>%
   # Calculate the rolling mean
-  mutate(rolling_mean = zoo::rollmean(VELO_TOT, k = 3, fill = NA)) %>%
+  mutate(rolling_mean = zoo::rollmean(bike_tot, k = 3, fill = NA)) %>%
   # Calculate the rolling std
-  mutate(rolling_std = zoo::rollapply(VELO_TOT, width = 3, FUN = sd, fill = NA)) %>%
+  mutate(rolling_std = zoo::rollapply(bike_tot, width = 3, FUN = sd, fill = NA)) %>%
   # Plot the timeseries
-  ggplot(aes(x = Datetime, y = VELO_TOT)) +
+  ggplot(aes(x = Datetime, y = bike_tot)) +
   geom_point() +
   geom_line(aes(x = Datetime, y = rolling_std, colour = "rolling std")) +
   #geom_ribbon(aes(ymin = rolling_mean - rolling_std, ymax = rolling_mean + rolling_std), fill = "darkgreen", alpha = 0.2) +
@@ -157,7 +154,7 @@ Next we aggregate the data on a daily basis an plot the whole year -> is there a
 # Calculate the rolling mean
 prep %>%
   group_by(Date) %>%
-  summarise(Traffic = sum(VELO_TOT)) %>%
+  summarise(Traffic = sum(bike_tot)) %>%
   # Calculate the rolling mean
   mutate(rolling_mean = zoo::rollmean(Traffic, k = 7, fill = NA)) %>%
   # Calculate the rolling std
@@ -190,11 +187,10 @@ weekday_colours <- c(
 
 ```{r plot timeseries daily traffic}
 prep %>%
-  filter(FUSS_TOT == 0 & VELO_TOT > 0) %>%
   # Group by Date
   group_by(Date, Weekday) %>%
   # Summarize the total traffic
-  summarise(Traffic = sum(VELO_TOT)) %>%
+  summarise(Traffic = sum(bike_tot)) %>%
   # Plot the timeseries
   ggplot(aes(x = Date, y = Traffic, col = Weekday)) + 
   geom_point() +
@@ -214,11 +210,11 @@ prep %>%
 ```{r boxplot monthly traffic}
 prep %>%
   # Select only the variables we need
-  select(Month, Weekday, VELO_TOT) %>%
+  select(Month, Weekday, bike_tot) %>%
   # Filter only Jan & Feb
   filter(Month %in% c("Apr", "Jul", "Nov", "Dez")) %>%
   # Plot the boxplot
-  ggplot(aes(x = Month, y = VELO_TOT, col = Weekday)) +
+  ggplot(aes(x = Month, y = bike_tot, col = Weekday)) +
   geom_boxplot() +
   theme_classic() +
   ylab("Velo Traffic") +
@@ -236,7 +232,7 @@ Relative humidity and temperature are highly correlated. This is expected as the
 ```{r correlation matrix}
 # Calculate the correlation matrix
 cor_matrix <- prep %>%
-  select(VELO_TOT, Hr...Hr., RainDur..min., StrGlo..W.m2., T...C., WD...., WVs..m.s., WVv..m.s., p..hPa.) %>%
+  select(bike_tot, Hr...Hr., RainDur..min., StrGlo..W.m2., T...C., WD...., WVs..m.s., WVv..m.s., p..hPa.) %>%
   cor()
 
 print(round(cor_matrix[1,],4))
@@ -255,7 +251,7 @@ corrplot::corrplot(cor_matrix, method = "color", type = "upper", order = "hclust
 # Then plot the values as bars and add facet_wrap by the variable
 prep %>%
   head(200) %>%
-  pivot_longer(cols = c(RainDur..min., StrGlo..W.m2.), 
+  pivot_longer(cols = c(RainDur..min., StrGlo..W.m2., Hr...Hr.), 
               names_to = "Variable", 
               values_to = "Value") %>%
   ggplot(aes(x = Datetime, y = Value)) +
@@ -272,7 +268,7 @@ The log-transformed timeseries looks lot more **stationary**.
 
 ```{r create time series object}
 # Create a time series object using xts
-velo_ts <- xts::xts(x = prep$VELO_TOT, 
+velo_ts <- xts::xts(x = prep$bike_tot, 
                order.by = prep$Datetime, 
                frequency = 8758)
 
@@ -319,15 +315,16 @@ acf(velo_ts)
 
 ## Linear Model
 
+
+
 ```{r linear regression residuals ,fig.width=9, fig.height=10}
 # Build multivariate linear model
 lm_velo <- prep %>% 
   filter(year(Datetime) == 2022) %>%
-  lm(VELO_TOT ~ Weekday + Date + Hr...Hr. + RainDur..min. + StrGlo..W.m2. + T...C., data = .)
+  lm(bike_tot ~ Weekday + Time + Month + Hr...Hr. + RainDur..min. + StrGlo..W.m2. + T...C. + WD.... + WVs..m.s. + WVv..m.s. + p..hPa., data = .)
 
-par(mfrow = c(2,1))
-plot.ts(velo_ts[1:100], main = "Original series")
-plot.ts(lm_velo$residuals[1:100], main = "Residuals")
+par(mfrow = c(2,2))
+plot(lm_velo)
 ```
 
 ```{r}
@@ -337,13 +334,13 @@ summary(lm_velo)
 ```{r predict}
 newx <- prep %>% 
           filter(year(Datetime) == 2023) %>%
-          select(VELO_TOT, Weekday, Date, Hr...Hr., RainDur..min., StrGlo..W.m2., T...C.)
+          select(bike_tot, Date, Weekday, Time,  Month,  Hr...Hr., RainDur..min., StrGlo..W.m2., T...C., WD...., WVs..m.s., WVv..m.s., p..hPa.)
 
-pred <- predict(lm_velo, newx = newx %>% select(-VELO_TOT))
+pred <- predict(lm_velo, newx = newx %>% select(-bike_tot, Date))
 ```
 
 ```{r pred vs real}
-plot(newx$Date, newx$VELO_TOT, type = "l")
+plot(newx$Date, newx$bike_tot, type = "l")
 lines(newx$Date, pred[1:8758], type = "l", col = "red")
 ```
 
