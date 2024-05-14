@@ -1,0 +1,535 @@
+---
+title: "Zurich Bike Traffic"
+author: "Mike Krähenbühl"
+date: "2024-04-22"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+
+knitr::opts_chunk$set(echo = TRUE,
+                      warning = FALSE,
+                      message = FALSE,
+                      fig.width=9, fig.height=5,
+                      fig.path='../../results/fig_negative_binomial_regression/',
+                      cache = TRUE,
+                      cache.path = './cache/')
+
+library(dplyr)
+library(MASS)
+library(ggplot2)
+library(ggcorrplot)
+library(tidyr)
+```
+
+## Data loading
+
+
+```{r}
+
+# article qualitatively describing the counting concept
+# https://www.stadt-zuerich.ch/ted/de/index/taz/verkehr/webartikel/webartikel_velozaehlungen.html
+
+# raw dataset 
+#https://data.stadt-zuerich.ch/dataset/ted_taz_verkehrszaehlungen_werte_fussgaenger_velo
+
+
+# load the data for the individual years
+data2020 <- read.csv('../../results/df_agg_hourly_2020.csv', header = TRUE)
+data2021 <- read.csv('../../results/df_agg_hourly_2021.csv', header = TRUE)
+data2022 <- read.csv('../../results/df_agg_hourly_2022.csv', header = TRUE)
+data2023 <- read.csv('../../results/df_agg_hourly_2023.csv', header = TRUE)
+
+
+# combine the years to one dataset
+data <- rbind(data2020, data2021, data2022, data2023)
+
+# Create Month column
+data$Month <- as.factor(format(as.Date(data$Date), "%m"))
+
+# Create Day column
+data$Day <- as.factor(format(as.Date(data$Date), "%d"))
+
+# Create a Weekday column
+data$Weekday <- as.factor(weekdays(as.Date(data$Date)))
+
+
+```
+
+Check structure of dataset
+
+```{r}
+head(data)
+str(data)
+```
+
+Select only one station for a new dataset: Langstrasse (Unterführung Nord)
+
+
+```{r}
+
+# check measurement locations
+unique(data$bezeichnung)
+table(data$bezeichnung)
+
+# select a station with only velo traffic
+one_station <- data[data$bezeichnung == "Langstrasse (Unterführung Nord)",]
+
+
+# for some Datetimes we have two rows, one for bike and one for foot.
+# We only select the Standort 2989 as this one is for velo and the other for foot.
+one_station_velo <- one_station[one_station$Standort==2989,]
+
+```
+
+## Exploratory data analysis
+
+
+Plot the velo traffic for the station Langstrasse (Unterführung Nord) for the years 2020-2023.
+
+```{r}
+
+plot(one_station_velo$bike_tot, type="l")
+```
+
+
+
+```{r}
+
+# Calculate correlation matrix
+
+correlation_matrix <- cor(na.omit(subset(one_station_velo, select = c("bike_tot", "Hr...Hr.", "RainDur..min.", "StrGlo..W.m2.", "T...C." , "WD...." , "WVs..m.s.","WVv..m.s.","p..hPa."))))
+rownames(correlation_matrix) <- colnames(correlation_matrix)
+
+dim(correlation_matrix)
+
+library(heatmaply)
+heatmap(correlation_matrix,
+        Rowv = NA, Colv = NA,
+        col = heat.colors(256),
+        scale = "none",
+        margins = c(5, 10),
+        main = "Correlation Heatmap")
+
+
+barplot(correlation_matrix[1,], las=2, 
+        main= " Correlation with bike_tot",
+        ylab="Correlation")
+
+
+```
+
+The relative humidity seems to have the highest (negative) correlation with bike_tot. Surprisingly, the rain duration is only weakly correlated. The global radiation and the temperature are positively correlated with bike_tot.
+
+
+
+# Regression models
+
+
+First we analyze the outcome variable bike_tot. Since it is count data, a poisson regression might be appropriate. Let's check the assumptions:
+
+
+* Response follows poisson distribution: Yes, count data per time unit (hour)
+* Independence: Yes, the bike_tot depends on time and other variables but not necessarily on previous bike_tot.
+* Mean = Variance: this assumption is clearly not met since variance is much larger than mean.
+
+```{r}
+
+# looks like poisson (makes sense because counts per time unit)
+hist(one_station_velo$bike_tot, main="Langstrasse (Unterführung Nord)", xlab = "Bike traffic per hour")
+
+# var > mean --> this means we have overdispersion
+mean(one_station_velo$bike_tot)
+var(one_station_velo$bike_tot)
+
+
+```
+
+Since we have over-dispersion (variance > mean) a Poisson regression cannot properly model the data because it has only one parameter $\lambda$. Therefore the negative binomial distribution seems to be more appropriate. It can be seen as a generalization of the poisson regression that has one additional parameter to model the over-dispersion.
+
+
+## Train/test-split
+
+Use the year 2022 as training set and 2023 as test set.
+
+```{r}
+
+# approximately equal amount of observations in each year
+table(one_station_velo$Year)
+
+
+
+train <- one_station_velo[one_station_velo$Year==2022,]
+
+test <- one_station_velo[one_station_velo$Year==2023,]
+
+```
+
+## Model training (on 2022 data)
+
+## Negative binomial regression
+
+
+We train models with different variables and check the RMSE of the training set.
+
+
+Model with only weekday + rainduration:
+```{r}
+
+# weather data
+# Luftdruck (p), die Niederschlagsdauer (RainDur), die Globalstrahlung (StrGlo), die Temperatur (T), die relative Luftfeuchtigkeit (Hr), die Windrichtung, die Vektor und Skalar Windgeschwindigkeit.
+
+set.seed(123)
+glm_nb_1 <-glm.nb(bike_tot ~ Weekday + RainDur..min., data=train)
+
+
+summary(glm_nb_1)
+
+prediction_errors <- (predict(glm_nb_1, train, type="response") - train$bike_tot)^2
+sum(length(which(is.na(prediction_errors)) ))
+sqrt(mean(na.omit(prediction_errors)))
+
+
+```
+
+
+Model with addidionally global radiation (slightly better):
+
+```{r}
+
+glm_nb_2<-glm.nb(bike_tot ~ Weekday +  RainDur..min.+ StrGlo..W.m2. , data=train)
+
+
+summary(glm_nb_2)
+
+prediction_errors <- (predict(glm_nb_2, train, type="response") - train$bike_tot)^2
+sum(length(which(is.na(prediction_errors)) ))
+sqrt(mean(na.omit(prediction_errors)))
+
+
+```
+
+Model with additinally hour of the day (RMSE improved a lot):
+
+```{r}
+
+
+set.seed(123)
+glm_nb_3<-glm.nb(bike_tot ~ Time + Weekday + StrGlo..W.m2. + RainDur..min., data=train)
+
+
+summary(glm_nb_3)
+
+prediction_errors <- (predict(glm_nb_3, train, type="response") - train$bike_tot)^2
+sum(length(which(is.na(prediction_errors)) ))
+sqrt(mean(na.omit(prediction_errors)))
+
+
+```
+
+
+
+Additionally Month, wind speed and temperature (RMSE better again, now around 69):
+
+
+```{r}
+
+set.seed(123)
+glm_nb_4 <-glm.nb(bike_tot ~ Time + Weekday + Month+ StrGlo..W.m2. +WVv..m.s.  + T...C. + RainDur..min., data=train)
+
+
+summary(glm_nb_4)
+
+prediction_errors <- (predict(glm_nb_4, train, type="response") - train$bike_tot)^2
+sum(length(which(is.na(prediction_errors)) ))
+sqrt(mean(na.omit(prediction_errors)))
+
+
+```
+
+
+Now additionally air pressure and humidity (model barely improved with this):
+
+```{r}
+
+set.seed(123)
+glm_nb_5 <-glm.nb(bike_tot ~ Time + Weekday + Month+ StrGlo..W.m2. +WVv..m.s.  + T...C. + RainDur..min.+ p..hPa. + Hr...Hr., data=train)
+
+
+summary(glm_nb_5)
+
+prediction_errors <- (predict(glm_nb_5, train, type="response") - train$bike_tot)^2
+sum(length(which(is.na(prediction_errors)) ))
+sqrt(mean(na.omit(prediction_errors)))
+
+
+```
+
+
+
+## Poisson regression
+
+Let's see how a poisson regression would perform. First easy model:
+
+```{r}
+
+
+set.seed(123)
+model_pois1<-glm(bike_tot ~ Weekday + RainDur..min., family=poisson(link="log"), data=train)
+
+summary(model_pois1)
+
+
+prediction_errors <- (predict(model_pois1, train, type="response") - train$bike_tot)^2
+sum(length(which(is.na(prediction_errors)) ))
+sqrt(mean(na.omit(prediction_errors)))
+```
+
+Now with the same variables as in our fourth negative binomial model (RMSE of 57, surprisingly much better than negative binomial):
+
+```{r}
+
+model_pois2 <-glm(bike_tot ~ Time + Weekday + Month+ StrGlo..W.m2. +WVv..m.s.  + T...C. + RainDur..min., family=poisson(link="log"), data=train)
+
+summary(model_pois2)
+
+prediction_errors <- (predict(model_pois2, train, type="response") - train$bike_tot)^2
+sum(length(which(is.na(prediction_errors)) ))
+sqrt(mean(na.omit(prediction_errors)))
+```
+
+
+
+## Linear model 
+
+Just as a benchmark a linear model with the same variables as in the last poisson regression (about equal with our best negative binomial model):
+
+```{r}
+
+
+lm1 <-lm(bike_tot ~ Time + Weekday + Month+ StrGlo..W.m2. +WVv..m.s.  + T...C. + RainDur..min., data=train)
+
+summary(lm1)
+
+
+prediction_errors <- (predict(lm1, train, type="response") - train$bike_tot)^2
+sum(length(which(is.na(prediction_errors)) ))
+sqrt(mean(na.omit(prediction_errors)))
+
+
+extractAIC(lm1)
+```
+
+The second poisson model was the best one in terms of square-root-MSE, hence we will select this model.
+
+
+## Model validation (on 2023 data)
+
+
+Compare the model accuracies on the 2023 data. For the accuracy we take the prediction (backtransformed), subtract the true value and square it. The square root of the mean squared error (MSE) is then the accuracy score (average error).
+
+
+```{r}
+
+get_pred_error <- function(model){
+  prediction_errors <- (predict(model, test, type="response") - test$bike_tot)^2
+
+# sum(length(which(is.na(prediction_errors)) ))
+ 
+ mean_pred_error <- sqrt(mean(na.omit(prediction_errors)))
+ return(mean_pred_error)
+  
+}
+
+
+
+# negative binomial
+get_pred_error(glm_nb_1)
+
+get_pred_error(glm_nb_2)
+
+get_pred_error(glm_nb_3)
+
+get_pred_error(glm_nb_4)
+
+get_pred_error(glm_nb_5)
+
+# poisson
+get_pred_error(model_pois1)
+
+get_pred_error(model_pois2)
+
+# linear
+get_pred_error(lm1)
+
+
+```
+
+
+As in the training set, the the model model_pois2 perfomrmed best. Following we discuss this model:
+
+```{r}
+summary(model_pois2)
+
+```
+
+
+
+The model is a generalized linear model, or more specifically a poisson regression. It was fitted using the factor variables Time, Weekday and Month and the numerical variables Global radiation (W/m2), Temperature (celsius) and the rain duration (minutes). Most parameters in the model are significant at a 5% significance level. The only exception, although only barely, is the weekday Wednesday.
+
+
+```{r}
+
+
+coefficients(model_pois2)["T...C."]
+
+
+exp(coefficients(model_pois2)["T...C."])
+
+```
+
+
+The coefficient for the variable temperature is 0.021 . This means that for a one-unit increase in temperature, the expected log count of bike traffic in one hour increases by 0.021 (if all other variables remain unchanged).
+
+
+```{r}
+
+# For visualization prediction vs true value of first week July 2023
+
+# Subset data for the month of July
+july_data <- test[test$Month== "07", ]
+
+# Further subset to show only the first week of July
+first_week_july <- july_data[july_data$Datetime <= as.POSIXct("2023-07-07 23:00"), ]
+
+# Create comparison dataframe for the first week of July
+comparison_first_week <- data.frame(true_value = first_week_july$bike_tot,
+                                    prediction = predict(model_pois2, first_week_july, type="response"))
+
+# Extract unique dates (start of each day)
+unique_dates <- c("2023-07-01 00:00", "2023-07-02 00:00", "2023-07-03 00:00",
+                  "2023-07-04 00:00", "2023-07-05 00:00", "2023-07-06 00:00",
+                  "2023-07-07 00:00")
+
+# Plot
+plot(1:nrow(first_week_july), comparison_first_week$true_value, type="l", xlab="Day of the Week", ylab="Count", ylim=c(0, max(comparison_first_week$true_value, comparison_first_week$prediction)), xaxt="n")
+lines(1:nrow(first_week_july), comparison_first_week$prediction, col="red")
+
+# Add legend
+legend("topleft", legend=c("True Value", "Prediction"), col=c("black", "red"), lty=1)
+
+# Add x-axis labels for weekdays
+axis(1, at=which(first_week_july$Datetime %in% unique_dates), labels=format(as.Date(unique_dates), "%A"), las=1)
+
+
+```
+
+Check how we over- or underestimated:
+
+
+
+```{r}
+
+# make a dataframe of 2023 with true value and predictions
+comparison <- data.frame(true_value = test$bike_tot, prediction = predict(model_pois2, test, type="response"))
+
+# calculate the differences
+comparison$difference <- comparison$true_value - 
+  comparison$prediction
+
+plot(comparison$diff, type="l", main="Absolute difference")
+plot(log(comparison$prediction)-log(comparison$true_value), type="l", main="Log difference")
+
+# we over estimated more than we underestimated (true - pred)
+sum(comparison$diff>0)
+sum(comparison$diff<0)
+
+```
+
+
+
+
+
+## Train poisson model on 2020-2022 (3 years)
+
+
+Train on 2020-2022
+
+```{r}
+
+# train-test split
+train <- one_station_velo[one_station_velo$Year!=2023,]
+
+test <- one_station_velo[one_station_velo$Year==2023,]
+```
+
+
+```{r}
+
+model_pois_3Y <-glm(bike_tot ~ Time + Weekday + Month+ StrGlo..W.m2. +WVv..m.s.  + T...C. + RainDur..min., family=poisson(link="log"), data=train)
+
+summary(model_pois_3Y)
+
+prediction_errors <- (predict(model_pois_3Y, train, type="response") - train$bike_tot)^2
+sum(length(which(is.na(prediction_errors)) ))
+sqrt(mean(na.omit(prediction_errors)))
+
+```
+
+
+The RMSE of the training set is much worse here (2020-2022) compared to when we only use 2022 as training data. The reason is probably that during 2020 the bike traffic was quite different from the other years, probably caused by the beginning of covid, that changed the behaviour. This is visible in the plot at the beginning of this document.
+
+
+
+Test the model on 2023
+
+```{r}
+
+get_pred_error_2023 <- function(model){
+  prediction_errors <- (predict(model, test, type="response") - test$bike_tot)^2
+  mean_pred_error <- sqrt(mean(na.omit(prediction_errors)))
+  return(mean_pred_error)
+  
+}
+
+
+
+# negative binomial
+
+get_pred_error_2023(model_pois_3Y)
+
+
+```
+
+The test prediction is not too bad with an RMSE of 65.9. However, the performance when we only used the 2022 data for training, the test performance was better.
+
+
+
+
+
+## Extreme value theory 
+
+(not finalized, not used in project)
+
+We are interested on the maximum amount of bicycles that are likely to pass the measurement station in one hour within the next 10 years. We are not interested in predicting the mean but in the maximum. This might be an important 
+
+```{r}
+
+plot(one_station_velo$bike_tot, xlab="Time (since 2023-01-01)", ylab="Bike traffic per hour")
+
+plot(bike_tot ~ Day, data=one_station_velo, xlab="Day", ylab="Bike traffic per hour")
+
+boxplot(bike_tot ~ Weekday, data=one_station_velo, xlab="Weekday", ylab="Bike traffic per hour")
+
+plot(bike_tot ~ Month, data=one_station_velo, xlab="Mont", ylab="Bike traffic per hour")
+
+
+lines(1:12, c(by(one_station_velo$bike_tot, one_station_velo$Month, median)), col=2, lwd=2)
+
+# day and hour with the max traffic per hour in 2023
+one_station_velo[which.max(one_station_velo$bike_tot),]
+
+```
+
+
+
