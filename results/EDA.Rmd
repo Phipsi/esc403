@@ -112,8 +112,10 @@ print(overlay_fuss_plot)
 ```{r}
 #Heatmap maybe with what ??
 # -> velo + fussand temperature + rain ?
-cor_data_frame_SO_month <- data_SO_month %>%
-  select(Month, VELO_IN, VELO_OUT, FUSS_IN, FUSS_OUT,RainDur..min., T...C. )
+data_SO_month_merged_column <- data_SO_month %>%
+  mutate(VELO = VELO_IN+VELO_OUT, FUSS = FUSS_IN+FUSS_OUT)
+cor_data_frame_SO_month <- data_SO_month_merged_column %>%
+  select(Month, VELO, FUSS,RainDur..min., T...C. )
 
 cor_matrix_SO_month <- cor(cor_data_frame_SO_month)
 
