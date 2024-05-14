@@ -32,34 +32,33 @@ library(zoo)
 library(xts)
 library(forecast)
 library(tseries)
-library(glmnet)
+#library(glmnet)
 ```
 
 # Load Data
 Loading the hourly aggregated dataset.
+
+```{r select location}
+# Select the location
+select_standort <- 1037
+```
+
+
 ```{r read data 2022}
 dat2022 <- read.csv('../../results/df_agg_hourly_2022.csv')
+dat2022 <- dat2022 %>% filter(Standort == select_standort)
 ```
 
 ```{r read data 2023}
 dat2023 <- read.csv('../../results/df_agg_hourly_2023.csv')
+dat2023 <- dat2023 %>% filter(Standort == select_standort)
 ```
 
 
 Next we decide which location to use. We will use the location with the most data available.
 ```{r select location}
-# Select the location
-select_standort <- 1037
-
-# Decide what year to use
+# Combine the datasets
 dat <- rbind(dat2022, dat2023)
-
-# Deciding which location to use
-dat %>% 
-  filter(Standort == select_standort) %>%
-  select(Standort, bezeichnung) %>%
-  unique()
-  
 
 # Check the time range of the data
 range(dat[dat$Standort == select_standort, ]$Datetime)
@@ -113,6 +112,9 @@ prep <- dat %>% mutate(
                                      "Freitag", "Samstag", "Sonntag"))) %>%
   # Create new month variable
   mutate(Month = lubridate::month(Date, label = TRUE))
+
+# Clean Up and save some space
+rm(list = c("dat2022", "dat2023"))
 
 # Check the first few rows
 prep %>% 
@@ -195,6 +197,7 @@ prep %>%
   ggplot(aes(x = Date, y = Traffic, col = Weekday)) + 
   geom_point() +
   geom_line() +
+  geom_vline(xintercept = date("2023-01-01"), linetype='dashed') +
   theme_classic() +
   ylab("Velo Traffic") +
   ggtitle(paste("Bike traffic at", prep$bezeichnung[1], "by day from Jan - Dec 2023")) +
@@ -235,11 +238,8 @@ cor_matrix <- prep %>%
   select(bike_tot, Hr...Hr., RainDur..min., StrGlo..W.m2., T...C., WD...., WVs..m.s., WVv..m.s., p..hPa.) %>%
   cor()
 
-print(round(cor_matrix[1,],4))
-
 # Plot the correlation matrix
 corrplot::corrplot(cor_matrix, method = "color", type = "upper", order = "hclust", tl.col = "black", tl.srt = 45)
-
 ```
 
 
@@ -270,7 +270,7 @@ The log-transformed timeseries looks lot more **stationary**.
 # Create a time series object using xts
 velo_ts <- xts::xts(x = prep$bike_tot, 
                order.by = prep$Datetime, 
-               frequency = 8758)
+               frequency = 24 * length(unique(prep$Date)))
 
 # Create a log transformed time-series
 velo_log_ts <- log(velo_ts + 1)
@@ -287,6 +287,99 @@ plot.xts(velo_ts_merge, col = c("blue", "red"),
 To remove the seasonal pattern, we might want to use a seasonally-adjusted time series. Otherwise, we could also create a dummy variable for the seasonal period (that is, a variable that characterises the weekends).
 
 We will be using the manualy created variable `weekday` (ordered factor) for compensating for the weekends.
+
+```{r}
+# Select only 2022 data for training the model
+ts_select <- prep %>% filter(year(Date) == 2022)
+
+bike_ts <- ts(data = ts_select$bike_tot, 
+              start = min(ts_select$bike_tot), 
+              end = max(ts_select$bike_tot), 
+              frequency = max(week(ts_select$Date)))
+```
+
+### Decomposed data
+
+```{r decompose bike_ts}
+# Decompose
+bike_ts_decompose <-  decompose(bike_ts)
+plot(bike_ts_decompose)
+```
+
+```{r autocorrelation}
+# Calculate Autocorrelation (Absolute Values)
+cat(paste(
+"###################################\nTOTAL AUTOCORRELATION (ABSOLUTE VALUES)\n###################################",
+"ADITTIVE MODEL = ", 
+    round(sum(abs(acf(na.omit(bike_ts_decompose$random), plot = F)$acf)),2),
+"\n\n###################################\nSUM OF RESIDUALS (ABSOLUTE VALUES)\n###################################",
+"ADITTIVE MODEL = ", 
+    round(sum(abs(scale(bike_ts_decompose$random)), na.rm=T),2)
+))
+```
+
+### Seasonal adjusted data
+
+```{r adjusted data}
+bike_detrended <- bike_ts - bike_ts_decompose$trend
+
+bike <- ts.intersect(bike_ts, bike_detrended)
+
+plot.ts(bike[1:50,],
+        plot.type = "single",
+        col = c("red", "blue"),
+        main = "Original (red) and Seasonally Adjusted Series (blue)")
+```
+
+The ACF of an autoregressive process typically shows a slow and gradual decay in autocorrelation over time.
+
+```{r}
+acf(na.omit(bike_ts_decompose$random))
+```
+
+The PACF of an autoregressive process shows a peak in correspondence with the order of the model. In the case of an AR(1) the peak is at time 1.
+
+```{r}
+pacf(na.omit(bike_ts_decompose$random)) # AR(p) model: the PACF vanishes after p lags
+```
+Moving Average (MA) model?
+The PACF of a MA process shows an up-and-down movement and does not shut off, but instead tapers toward 0 in some manner.
+```{r}
+library(forecast)
+
+arima_fit <- auto.arima(bike_ts)
+
+arima_fit
+```
+
+
+
+```{r}
+ar_3 <- ar(bike_ts, order.max = 3)
+ar_3
+
+ar_3 %>%
+forecast(h = 10) %>%
+autoplot() + autolayer(bike_ts) +
+theme_bw() +
+scale_color_manual(name = " ", values = c("blue"), labels = c("Sample"))
+```
+
+
+
+```{r}
+auto_arima_model_2 <- auto.arima(bike_ts)
+print(auto_arima_model_2)
+```
+
+```{r}
+auto_arima_model_2 %>%
+forecast(h = 40) %>%
+autoplot() + theme_bw() +
+scale_color_manual(name = " ", values = c("blue"), labels = c("Sample"))
+```
+
+
 
 ### Augmented Dickey-Fuller Test (ADF)
 ```{r}
@@ -344,3 +437,34 @@ plot(newx$Date, newx$bike_tot, type = "l")
 lines(newx$Date, pred[1:8758], type = "l", col = "red")
 ```
 
+# Vector Autoregressive Model
+
+
+```{r}
+library(vars)
+```
+
+The function to fit the model is VAR, and the number of lags is specified using the p parameter.
+
+```{r VARselect}
+vars::VARselect(newx %>% dplyr::select(bike_tot, Time, T...C.))
+```
+
+```{r}
+var_fit <- vars::VAR(newx %>% dplyr::select(bike_tot, Time, T...C.), p = 10)
+#summary(var_fit)
+```
+
+
+```{r}
+plot(vars::stability(var_fit))
+```
+
+```{r predict}
+pred <- predict(var_fit, newx = newx %>% dplyr::select(-bike_tot))
+```
+
+```{r pred vs real}
+plot(newx$Date, newx$bike_tot, type = "l")
+lines(newx$Date, pred$fcst$bike_tot, type = "l", col = "red")
+```
