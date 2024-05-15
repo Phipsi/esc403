@@ -1,0 +1,5 @@
+Model,RMSE,R2
+All Locations,43.31,0.64
+All Features,16.62,0.87
+Best Hyperparameters,16.5,0.88
+Top 5 Features,18.02,0.85
