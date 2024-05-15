@@ -135,20 +135,57 @@ cor_data_frame_SO_month
 #Plot of January to show the seasonality due to the days of the week
 
 #days_of_week <- c("Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat","Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Mon", "Tue", "Wed")
+data_SO_hours_merged_column <- data_SO_hours %>%
+  mutate(VELO = VELO_IN+VELO_OUT, FUSS = FUSS_IN+FUSS_OUT)
 
-january <- data_SO_hours %>%
+january <- data_SO_hours_merged_column %>%
   filter(Month %in% 1)
 
 weekly_plot <- ggplot() +
-  geom_bar(data = january, aes(x = Day, y = VELO_IN, fill = "IN"), stat = "identity", alpha = 0.7, position = "dodge") +
-  geom_bar(data = january, aes(x = Day, y = VELO_OUT, fill = "OUT"), stat = "identity", alpha = 0.7, position = "dodge") +
-  labs(title = "Bycicles in and out in January", x = "Days", y = "VELO", fill = "Group") +
-  scale_fill_manual(name = "Group", values = c("IN" = "lightblue", "OUT" = "coral2")) +
+  geom_bar(data = january, aes(x = Day, y = VELO), stat = "identity", alpha = 0.7, position = "dodge", fill="coral2") +
+  labs(title = "Bycicles in January", x = "Days", y = "VELO", fill = "Group") +
+  
   theme_minimal()
 
 weekly_plot
 ```
 
+```{r}
+overlay_velo_plot <- ggplot(data_SO_month_merged_column, aes(x=Month)) +
+  geom_bar(aes(y = VELO), stat = "identity", alpha = 0.7, position = "dodge", fill="skyblue") +
+  scale_y_continuous(
+    name = "VELO")+
+  labs(title = "Total bicycles in 2023", x = "Month") +
+  
+  scale_x_discrete(limits=custom)+
+  theme_minimal()
 
 
+print(overlay_velo_plot)
+```
+
+
+```{r}
+overlay_velo_plot <- ggplot(data_SO_month_merged_column, aes(x=Month)) +
+  geom_bar(aes(y = FUSS), stat = "identity", alpha = 0.7, position = "dodge", fill="lightgreen") +
+  scale_y_continuous(
+    name = "FUSS")+
+  labs(title = "Total pedestrians in 2023", x = "Month") +
+  
+  scale_x_discrete(limits=custom)+
+  theme_minimal()
+
+
+print(overlay_velo_plot)
+```
+
+```{r}
+weekly_plot <- ggplot() +
+  geom_bar(data = january, aes(x = Day, y = FUSS), stat = "identity", alpha = 0.7, position = "dodge", fill="coral2") +
+  labs(title = "Pedestrians in January", x = "Days", y = "VELO", fill = "Group") +
+  
+  theme_minimal()
+
+weekly_plot
+```
 
