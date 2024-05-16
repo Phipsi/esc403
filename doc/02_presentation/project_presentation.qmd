@@ -1,0 +1,274 @@
+---
+title: "Predicting Bicycle Traffic in Zurich"
+author: "Damian Brühlart, Mike Krahenbühl, Philipp Wyss and Julie Tschanz"
+format: 
+  revealjs:
+    theme: default
+    logo: UZHLogo.png
+    footer: "Predicting Bicycle Traffic in Zurich | 18.05.2024"
+    progress: true
+editor: visual
+---
+
+
+## Table of contents
+
+tbd
+
+## Introduction
+
+:::: {.columns}
+
+::: {.column width="60%"}
+-   Increase use of bike and foot traffic
+
+-   Development of public bike in cities
+
+-   Need for such companies to provide enough
+
+-   Impact of the weather on the traffic
+:::
+
+::: {.column width="40%"}
+![](web_zurich_opernhaus_velo_zt_16620_1600x900_01.jpg){fig-align="right"}
+:::
+
+::::
+
+
+## Main Questions
+
+-   How does weather and season affect foot and bike traffic?
+
+-   is it possible to make predictions ?
+
+## Data
+  
+::: {.panel-tabset}
+
+### Bike and foot traffic
+Collected by the civil engineering office
+ 
+- **Frendschlüssel Zählstelle** : ID of the location where the measurement was taken
+- **Datum** : Datetime
+- **Velo_in** : Number of bikes passing in the station in IN direction
+- **Velo_out** : Number of bikes getting out of the station in OUT direction
+
+### Weather
+
+- [Hourly data](https://opendata.swiss/en/dataset/stundlich-aktualisierte-meteodaten-seit-1992) by the city of Zürich
+- **Contains**: `Date`, `location`, `Air pressure (hPa)`, `Rain precipitation duration (min)`,  `Temperature (C°)`, `global radiation (W/m2)`, `Relative humidity (%Hr)`, `Wind direction`
+
+### Population
+
+:::
+
+## Bike and Foot
+![](citymap_marked.png){fig-align="center"}
+
+## Exploratory data analysis [traffic]
+
+```{r import libs, echo = FALSE, include = FALSE}
+library(tidyverse)
+library(lubridate)
+```
+
+```{r read and prep data}
+# Select the location
+select_standort <- 1037
+
+to_select <- c("Datetime",
+               "Date", 
+               "bezeichnung", 
+               "bike_tot",
+               "Hr...Hr.", 
+               "RainDur..min.", 
+               "StrGlo..W.m2.", 
+               "T...C.", 
+               "WD....", 
+               "WVs..m.s.", 
+               "WVv..m.s.", 
+               "p..hPa.")
+
+# 2022
+dat2022 <- read.csv('../../results/df_agg_hourly_2022.csv')
+dat2022 <- dat2022 %>% filter(Standort == select_standort) %>% 
+  select(all_of(to_select))
+
+# 2023
+dat2023 <- read.csv('../../results/df_agg_hourly_2023.csv')
+dat2023 <- dat2023 %>% filter(Standort == select_standort) %>% 
+  select(all_of(to_select))
+
+# Bind
+dat <- rbind(dat2022, dat2023)
+# Cleanup
+rm(list = c("dat2022", "dat2023"))
+
+# Mutate types
+dat <- dat %>% mutate(Date = lubridate::as_date(Date),
+                      Weekday = weekdays(Date)) %>%
+  # Transform Weekday to ordered factor starting with Monday
+  mutate(Weekday = factor(Weekday, 
+                          levels = c("Montag", "Dienstag", 
+                                     "Mittwoch", "Donnerstag", 
+                                     "Freitag", "Samstag", "Sonntag")),
+         Date = lubridate::ymd(Date),
+         Datetime = lubridate::ymd_hm(Datetime),
+         Month = lubridate::month(Date, label = TRUE))
+
+colnames(dat) <- c("Datetime",
+               "Date", 
+               "bezeichnung", 
+               "bike_tot",
+               "Hr [%Hr]", 
+               "RainDur [min]", 
+               "StrGlo [W/m2]", 
+               "T [°C]", 
+               "WD [°]", 
+               "WVs [m/s]", 
+               "WVv [m/s]", 
+               "p [hPa]",
+               "Weekday",
+               "Month")
+```
+
+::: {.panel-tabset}
+
+### Timeseries
+
+```{r Trendanalysis, warning = FALSE}
+dat %>%
+  select(Date, bike_tot) %>%
+  group_by(Date) %>%
+  summarise(Traffic = sum(bike_tot)) %>%
+  # Calculate the rolling mean
+  mutate(rolling_mean = zoo::rollmean(Traffic, k = 7, fill = NA)) %>%
+  # Calculate the rolling std
+  mutate(rolling_std = zoo::rollapply(Traffic, width = 7, FUN = sd, fill = NA)) %>%
+  ggplot(aes(x = Date, y = Traffic)) +
+  geom_point(pch = 20, col = "lightgrey") +
+  geom_line(col = "lightgrey") + 
+  geom_line(aes(x = Date, y = rolling_std, colour = "rolling std")) +
+  geom_vline(xintercept = date("2023-01-01"), linetype='dashed') +
+  #geom_ribbon(aes(ymin = rolling_mean - rolling_std, ymax = rolling_mean + rolling_std), fill = "darkgreen", alpha = 0.2) +
+  geom_line(aes(x = Date, y = rolling_mean, colour = "rolling mean")) +
+  scale_color_manual(name = "", values = c("rolling std" = "darkgreen", "rolling mean" = "red")) +
+  theme_classic() +
+  theme(legend.position = "bottom") + 
+  ylab("Bike Traffic") +
+  ggtitle(paste("Bike traffic at B:", dat$bezeichnung[1], " [2022 - 2023]"))
+```
+
+### Timeseries by Weekday
+
+```{r custom weekday colours, echo = FALSE, include = FALSE}
+weekday_colours <- c(
+      "Montag" = "#DFE2E8",
+      "Dienstag" = "#AEB7C6",
+      "Mittwoch" = "#9EA8BA",
+      "Donnerstag" = "#8D99AE",
+      "Freitag" = "#808EA5",
+      "Samstag" = "#F47382",
+      "Sonntag" = "#D90429")
+```
+
+
+```{r plot timeseries daily traffic}
+dat %>%
+  select(Date, bike_tot, Weekday) %>%
+  # Group by Date
+  group_by(Date, Weekday) %>%
+  # Summarize the total traffic
+  summarise(Traffic = sum(bike_tot)) %>%
+  # Plot the timeseries
+  ggplot(aes(x = Date, y = Traffic, col = Weekday)) + 
+  geom_point(pch = 20) +
+  geom_line() +
+  geom_vline(xintercept = date("2023-01-01"), linetype='dashed') +
+  theme_classic() +
+  ylab("Bike Traffic") +
+  ggtitle(paste("Bike traffic at B:", dat$bezeichnung[1], " [2022 - 2023]")) +
+  theme(legend.position = "bottom") + 
+  # Manualy set color scale
+  scale_colour_manual(
+    values = weekday_colours
+  )
+```
+
+:::
+
+### Boxplot by Weekday
+```{r}
+dat %>%
+  # Select only the variables we need
+  select(Month, Weekday, bike_tot) %>%
+  # Filter only Jan & Feb
+  filter(Month %in% c("Apr", "Jul", "Nov", "Dez")) %>%
+  # Plot the boxplot
+  ggplot(aes(x = Month, y = bike_tot, col = Weekday)) +
+  geom_boxplot() +
+  theme_classic() +
+  ylab("Bike Traffic") +
+  ggtitle(paste("Bike traffic at B:", dat$bezeichnung[1], " [2022 - 2023]")) +
+    theme(legend.position = "bottom") + 
+    # Manualy set color scale
+  scale_colour_manual(
+    values = weekday_colours
+  )
+```
+
+## Exploratory data analysis [weather]
+
+::: {.panel-tabset}
+
+### Boxplot
+```{r}
+dat %>%
+  pivot_longer(cols = c(bike_tot, "Hr [%Hr]", "RainDur [min]", "StrGlo [W/m2]", 
+        "T [°C]", "WD [°]", "WVs [m/s]", "WVv [m/s]", "p [hPa]"), 
+              names_to = "Variable", 
+              values_to = "Value") %>%
+  ggplot(aes(x = Variable, y = Value)) +
+  geom_boxplot() +
+  theme_classic() +
+  theme(axis.text.x = element_text(angle=45, vjust=1, hjust=1))
+```
+
+
+### Weather
+
+```{r plot weather timeseries}
+# Plot RainDur and StrGlo as a function of Datetime
+# First transfrom the data to long format
+# Then plot the values as bars and add facet_wrap by the variable
+dat %>%
+  head(200) %>%
+  pivot_longer(cols = c("RainDur [min]", "StrGlo [W/m2]", "Hr [%Hr]", "T [°C]"), 
+              names_to = "Variable", 
+              values_to = "Value") %>%
+  ggplot(aes(x = Datetime, y = Value)) +
+  geom_bar(stat = "identity") +
+  facet_wrap(vars(Variable), ncol = 1) +
+  theme_classic() +
+  ylab("Value") +
+  ggtitle(paste("Rain duration and global radiation at", dat$bezeichnung[1], "by day in January")) +
+  theme(legend.position = "bottom")
+```
+
+
+### Correlation
+
+```{r correlation matrix}
+# Calculate the correlation matrix
+cor_matrix <- dat %>%
+  select(bike_tot, "Hr [%Hr]", "RainDur [min]", "StrGlo [W/m2]", 
+        "T [°C]", "WD [°]", "WVs [m/s]", "WVv [m/s]", "p [hPa]") %>%
+  cor()
+
+# Plot the correlation matrix
+corrplot::corrplot(cor_matrix, method = "color", type = "upper", order = "hclust", tl.col = "black", tl.srt = 45)
+```
+
+
+:::
