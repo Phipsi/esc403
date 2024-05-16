@@ -130,6 +130,14 @@ corrplot(cor_matrix_SO_month, method = "color", type = "upper",
 cor_data_frame_SO_month
 ```
 
+```{r}
+#Total pedestrians and bike in 2023
+velo <- sum(data_SO_month_merged_column$VELO)
+fuss <- sum(data_SO_month_merged_column$FUSS)
+
+
+```
+
 
 ```{r}
 #Plot of January to show the seasonality due to the days of the week
@@ -182,10 +190,26 @@ print(overlay_velo_plot)
 ```{r}
 weekly_plot <- ggplot() +
   geom_bar(data = january, aes(x = Day, y = FUSS), stat = "identity", alpha = 0.7, position = "dodge", fill="coral2") +
-  labs(title = "Pedestrians in January", x = "Days", y = "VELO", fill = "Group") +
+  labs(title = "Pedestrians in January", x = "Days", y = "FUSS", fill = "Group") +
   
   theme_minimal()
 
 weekly_plot
+```
+
+```{r}
+data <- read.csv("df_agg_hourly_2022.csv", header = TRUE)
+
+velo_22 <- sum(data$bike_tot)
+fuss_22<- sum(data$ped_tot)
+velo_22;fuss_22
+```
+
+```{r}
+data <- read.csv("df_agg_hourly_2021.csv", header = TRUE)
+
+velo_21 <- sum(data$bike_tot)
+fuss_21<- sum(data$ped_tot)
+velo_21;fuss_21
 ```
 
