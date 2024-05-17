@@ -354,9 +354,9 @@ D. Bruelhart, M. Krähenbühl, P. Wyss and J. Tschanz
 <div class="columns">
 <div class="column" style="width:60%;">
 <ul>
-<li><p>Increase use of bike and foot traffic</p></li>
-<li><p>Development of public bike in cities</p></li>
-<li><p>Need for such companies to provide enough</p></li>
+<li><p>Increase in bike traffic</p></li>
+<li><p>Development of public bikes in cities</p></li>
+<li><p>Providers must know demand to provide enough bikes</p></li>
 <li><p>Impact of the weather on the traffic</p></li>
 </ul>
 </div><div class="column" style="width:40%;">
@@ -371,8 +371,8 @@ D. Bruelhart, M. Krähenbühl, P. Wyss and J. Tschanz
 <section id="main-questions" class="slide level2">
 <h2>Main Questions</h2>
 <ul>
-<li><p>How does weather and season affect foot and bike traffic?</p></li>
-<li><p>is it possible to make predictions ?</p></li>
+<li><p>How does weather and season affect bike traffic ?</p></li>
+<li><p>Is it possible to make predictions ?</p></li>
 </ul>
 </section>
 <section id="data" class="slide level2">
@@ -486,7 +486,7 @@ D. Bruelhart, M. Krähenbühl, P. Wyss and J. Tschanz
 <li>Linear Regression</li>
 <li>Lasso Regression</li>
 <li>Poisson Regression</li>
-<li>Negative binomial regression</li>
+<li>Negative Binomial Regression</li>
 </ol>
 </section>
 <section id="random-forest" class="slide level2">
@@ -582,7 +582,7 @@ D. Bruelhart, M. Krähenbühl, P. Wyss and J. Tschanz
 </ul>
 <p><strong>Included Features</strong></p>
 <ul>
-<li><code>'Hr [%Hr]', 'RainDur [min]', 'T [°C]', 'WD [°]', 'WVv [m/s]', 'p [hPa]', 'Year', 'AnzBestWir', 'hour', 'month', 'day_of_week'</code>, additional lag variables <code>lag_1</code> till <code>lag_7</code></li>
+<li><code>'Hr [%Hr]', 'RainDur [min]', 'T [°C]', 'WD [°]', 'WVv [m/s]', 'p [hPa]', 'Year', 'hour', 'month', 'day_of_week'</code>, additional lag variables <code>lag_1</code> till <code>lag_7</code></li>
 </ul>
 </section>
 <section id="linear-regression" class="slide level2">
@@ -784,9 +784,9 @@ D. Bruelhart, M. Krähenbühl, P. Wyss and J. Tschanz
 <h2>Model Comparison</h2>
 <table>
 <colgroup>
-<col style="width: 38%">
-<col style="width: 30%">
-<col style="width: 30%">
+<col style="width: 45%">
+<col style="width: 27%">
+<col style="width: 26%">
 </colgroup>
 <thead>
 <tr class="header">
@@ -812,22 +812,22 @@ D. Bruelhart, M. Krähenbühl, P. Wyss and J. Tschanz
 <td>18.02</td>
 </tr>
 <tr class="even">
-<td>linear regression</td>
+<td>Linear Regression</td>
 <td>0.75</td>
 <td>61.79</td>
 </tr>
 <tr class="odd">
-<td>lasso regression</td>
+<td>Lasso Regression</td>
 <td>0.75</td>
 <td>23.75</td>
 </tr>
 <tr class="even">
-<td>poisson regression</td>
+<td>Poisson Regression</td>
 <td>n/a</td>
 <td>27.42</td>
 </tr>
 <tr class="odd">
-<td>negative binomial</td>
+<td>Negative Binomial</td>
 <td>n/a</td>
 <td>145.05</td>
 </tr>
@@ -837,7 +837,7 @@ D. Bruelhart, M. Krähenbühl, P. Wyss and J. Tschanz
 <section id="conclusion" class="slide level2">
 <h2>Conclusion</h2>
 <ul>
-<li>Prediction quite good on station level but all models end to overestimate</li>
+<li>Prediction quite good on station level but all regression models tend to overestimate, while RF underestimates</li>
 <li>Limitations: did not take holidays or overall trend into account</li>
 <li><strong>Lasso</strong>, <strong>Poisson Regression</strong> and <strong>Random Forest</strong> had the best results</li>
 <li>Most importan variables are <em>hour of day</em> (<code>time</code>) the temperature (<code>T [°C]</code>) day of the week (<code>weekday</code>), <code>month</code>, <em>relative humidity</em> (`Hr [%Hr]) and the lagged values.</li>
