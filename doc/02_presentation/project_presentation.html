@@ -353,7 +353,7 @@ Damian Brühlart, Mike Krahenbühl, Philipp Wyss and Julie Tschanz
 </div><div class="column" style="width:40%;">
 <div class="quarto-figure quarto-figure-right">
 <figure>
-<p><img data-src="web_zurich_opernhaus_velo_zt_16620_1600x900_01.jpg"></p>
+<p><img data-src="figs/web_zurich_opernhaus_velo_zt_16620_1600x900_01.jpg"></p>
 </figure>
 </div>
 </div>
@@ -395,7 +395,7 @@ Damian Brühlart, Mike Krahenbühl, Philipp Wyss and Julie Tschanz
 <section id="bike-and-foot" class="slide level2">
 <h2>Bike and Foot</h2>
 
-<img data-src="citymap_marked.png" class="r-stretch quarto-figure-center"></section>
+<img data-src="figs/citymap_marked.png" class="r-stretch quarto-figure-center"></section>
 <section id="exploratory-data-analysis-traffic" class="slide level2">
 <h2>Exploratory data analysis [traffic]</h2>
 <div class="panel-tabset">
@@ -452,7 +452,93 @@ Damian Brühlart, Mike Krahenbühl, Philipp Wyss and Julie Tschanz
 </div>
 </div>
 </div>
-<p><img src="UZHLogo.png" class="slide-logo"></p>
+</section>
+<section id="predicting-bike-traffic" class="slide level2">
+<h2>Predicting bike traffic</h2>
+<ol type="1">
+<li>Random Forest</li>
+<li>Linear Regression</li>
+<li>Lasso Regression</li>
+<li>Poisson Regression</li>
+<li>Negative binomial regression</li>
+</ol>
+</section>
+<section id="random-forest" class="slide level2">
+<h2>Random Forest</h2>
+<p><strong>Idea</strong></p>
+<ul>
+<li>Use Data from 2020 - 2022 for training (all locations)</li>
+<li>Predict bike traffic in 2023 as test</li>
+</ul>
+<p><strong>Included Features</strong></p>
+<ul>
+<li><code>'Hr [%Hr]', 'RainDur [min]', 'T [°C]', 'WD [°]', 'WVv [m/s]', 'p [hPa]', 'Year', 'AnzBestWir', 'hour', 'month', 'day_of_week'</code></li>
+<li>Also including <code>'Standort'</code> for RF with all locations</li>
+</ul>
+</section>
+<section id="random-forest-results" class="slide level2">
+<h2>Random Forest: Results</h2>
+<div class="panel-tabset">
+<ul id="tabset-4" class="panel-tabset-tabby"><li><a data-tabby-default="" href="#tabset-4-1">All Locations</a></li><li><a href="#tabset-4-2">Hardbrücke Nord</a></li></ul>
+<div class="tab-content">
+<div id="tabset-4-1">
+<div class="columns">
+<div class="column" style="width:50%;">
+<div class="quarto-figure quarto-figure-center">
+<figure>
+<p><img data-src="figs/RF_All_locations_pred_vs_true.png"></p>
+</figure>
+</div>
+</div><div class="column" style="width:50%;">
+<div class="quarto-figure quarto-figure-center">
+<figure>
+<p><img data-src="figs/RF_All_locations_variable_importance.png"></p>
+</figure>
+</div>
+</div>
+</div>
+</div>
+<div id="tabset-4-2">
+<div class="columns">
+<div class="column" style="width:50%;">
+<div class="quarto-figure quarto-figure-center">
+<figure>
+<p><img data-src="figs/RF_Hardbruecke_nord_pred_vs_true.png"></p>
+</figure>
+</div>
+</div><div class="column" style="width:50%;">
+<div class="quarto-figure quarto-figure-center">
+<figure>
+<p><img data-src="figs/RF_Hardbruecke_nord_variable_importance.png"></p>
+</figure>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<section id="linear-regression" class="slide level2">
+<h2>Linear Regression</h2>
+<div class="panel-tabset">
+<ul id="tabset-5" class="panel-tabset-tabby"><li><a data-tabby-default="" href="#tabset-5-1">Model Statistics</a></li><li><a href="#tabset-5-2">Residuals</a></li></ul>
+<div class="tab-content">
+<div id="tabset-5-1">
+<ul>
+<li>Adjusted R-squard: 0.7648</li>
+<li>Residual standard error: 49.12 on 33, 8719, 33 degrees of freedom</li>
+</ul>
+</div>
+<div id="tabset-5-2">
+<div class="cell">
+<div class="cell-output-display">
+<p><img data-src="project_presentation_files/figure-revealjs/lm%20residuals-1.png" width="960"></p>
+</div>
+</div>
+</div>
+</div>
+</div>
+<p><img src="figs/UZHLogo.png" class="slide-logo"></p>
 <div class="footer footer-default">
 <p>Predicting Bicycle Traffic in Zurich | 18.05.2024</p>
 </div>

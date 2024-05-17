@@ -4,12 +4,11 @@ author: "Damian Brühlart, Mike Krahenbühl, Philipp Wyss and Julie Tschanz"
 format: 
   revealjs:
     theme: default
-    logo: UZHLogo.png
+    logo: figs/UZHLogo.png
     footer: "Predicting Bicycle Traffic in Zurich | 18.05.2024"
     progress: true
 editor: visual
 ---
-
 
 ## Table of contents
 
@@ -17,8 +16,7 @@ tbd
 
 ## Introduction
 
-:::: {.columns}
-
+::: columns
 ::: {.column width="60%"}
 -   Increase use of bike and foot traffic
 
@@ -30,11 +28,9 @@ tbd
 :::
 
 ::: {.column width="40%"}
-![](web_zurich_opernhaus_velo_zt_16620_1600x900_01.jpg){fig-align="right"}
+![](figs/web_zurich_opernhaus_velo_zt_16620_1600x900_01.jpg){fig-align="right"}
 :::
-
-::::
-
+:::
 
 ## Main Questions
 
@@ -43,34 +39,35 @@ tbd
 -   is it possible to make predictions ?
 
 ## Data
-  
-::: {.panel-tabset}
 
+::: panel-tabset
 ### Bike and foot traffic
+
 Collected by the civil engineering office
- 
-- **Frendschlüssel Zählstelle** : ID of the location where the measurement was taken
-- **Datum** : Datetime
-- **Velo_in** : Number of bikes passing in the station in IN direction
-- **Velo_out** : Number of bikes getting out of the station in OUT direction
+
+-   **Frendschlüssel Zählstelle** : ID of the location where the measurement was taken
+-   **Datum** : Datetime
+-   **Velo_in** : Number of bikes passing in the station in IN direction
+-   **Velo_out** : Number of bikes getting out of the station in OUT direction
 
 ### Weather
 
-- [Hourly data](https://opendata.swiss/en/dataset/stundlich-aktualisierte-meteodaten-seit-1992) by the city of Zürich
-- **Contains**: `Date`, `location`, `Air pressure (hPa)`, `Rain precipitation duration (min)`,  `Temperature (C°)`, `global radiation (W/m2)`, `Relative humidity (%Hr)`, `Wind direction`
+-   [Hourly data](https://opendata.swiss/en/dataset/stundlich-aktualisierte-meteodaten-seit-1992) by the city of Zürich
+-   **Contains**: `Date`, `location`, `Air pressure (hPa)`, `Rain precipitation duration (min)`, `Temperature (C°)`, `global radiation (W/m2)`, `Relative humidity (%Hr)`, `Wind direction`
 
 ### Population
-
 :::
 
 ## Bike and Foot
-![](citymap_marked.png){fig-align="center"}
 
-## Exploratory data analysis [traffic]
+![](figs/citymap_marked.png){fig-align="center"}
+
+## Exploratory data analysis \[traffic\]
 
 ```{r import libs, echo = FALSE, include = FALSE}
 library(tidyverse)
 library(lubridate)
+library(caret)
 ```
 
 ```{r read and prep data}
@@ -78,6 +75,7 @@ library(lubridate)
 select_standort <- 1037
 
 to_select <- c("Datetime",
+               "Time",
                "Date", 
                "bezeichnung", 
                "bike_tot",
@@ -115,9 +113,11 @@ dat <- dat %>% mutate(Date = lubridate::as_date(Date),
                                      "Freitag", "Samstag", "Sonntag")),
          Date = lubridate::ymd(Date),
          Datetime = lubridate::ymd_hm(Datetime),
-         Month = lubridate::month(Date, label = TRUE))
+         Month = lubridate::month(Date, label = TRUE),
+         Time = factor(as.integer(substr(Time, 1, 2))))
 
 colnames(dat) <- c("Datetime",
+                   "Time",
                "Date", 
                "bezeichnung", 
                "bike_tot",
@@ -133,8 +133,7 @@ colnames(dat) <- c("Datetime",
                "Month")
 ```
 
-::: {.panel-tabset}
-
+::: panel-tabset
 ### Timeseries
 
 ```{r Trendanalysis, warning = FALSE}
@@ -173,7 +172,6 @@ weekday_colours <- c(
       "Sonntag" = "#D90429")
 ```
 
-
 ```{r plot timeseries daily traffic}
 dat %>%
   select(Date, bike_tot, Weekday) %>%
@@ -195,10 +193,10 @@ dat %>%
     values = weekday_colours
   )
 ```
-
 :::
 
 ### Boxplot by Weekday
+
 ```{r}
 dat %>%
   # Select only the variables we need
@@ -220,9 +218,9 @@ dat %>%
 
 ## Exploratory data analysis [weather]
 
-::: {.panel-tabset}
-
+::: panel-tabset
 ### Boxplot
+
 ```{r}
 dat %>%
   pivot_longer(cols = c(bike_tot, "Hr [%Hr]", "RainDur [min]", "StrGlo [W/m2]", 
@@ -232,9 +230,9 @@ dat %>%
   ggplot(aes(x = Variable, y = Value)) +
   geom_boxplot() +
   theme_classic() +
+  ggtitle("Boxplot of weather variables + bike_tot") +
   theme(axis.text.x = element_text(angle=45, vjust=1, hjust=1))
 ```
-
 
 ### Weather
 
@@ -256,7 +254,6 @@ dat %>%
   theme(legend.position = "bottom")
 ```
 
-
 ### Correlation
 
 ```{r correlation matrix}
@@ -269,6 +266,106 @@ cor_matrix <- dat %>%
 # Plot the correlation matrix
 corrplot::corrplot(cor_matrix, method = "color", type = "upper", order = "hclust", tl.col = "black", tl.srt = 45)
 ```
-
-
 :::
+
+## Predicting bike traffic
+
+1.  Random Forest
+2.  Linear Regression
+3.  Lasso Regression
+4.  Poisson Regression
+5.  Negative binomial regression
+
+## Random Forest
+
+**Idea**
+
+-   Use Data from 2020 - 2022 for training (all locations)
+-   Predict bike traffic in 2023 as test
+
+**Included Features**
+
+-   `'Hr [%Hr]', 'RainDur [min]', 'T [°C]', 'WD [°]', 'WVv [m/s]', 'p [hPa]', 'Year', 'AnzBestWir', 'hour', 'month', 'day_of_week'`
+-   Also including `'Standort'` for RF with all locations
+
+## Random Forest: Results
+
+::: panel-tabset
+### All Locations
+
+::: columns
+::: {.column width="50%"}
+![](figs/RF_All_locations_pred_vs_true.png){fig-align="center"}
+:::
+
+::: {.column width="50%"}
+![](figs/RF_All_locations_variable_importance.png){fig-align="center"}
+:::
+:::
+
+### Hardbrücke Nord
+
+::: columns
+::: {.column width="50%"}
+![](figs/RF_Hardbruecke_nord_pred_vs_true.png){fig-align="center"}
+:::
+
+::: {.column width="50%"}
+![](figs/RF_Hardbruecke_nord_variable_importance.png){fig-align="center"}
+:::
+:::
+:::
+
+## Linear Regression
+
+```{r Create lagged variables}
+# Create lagged variables
+dat <- dat %>%
+  mutate(lag_1 = dplyr::lag(bike_tot, n=1),
+         lag_2 = dplyr::lag(bike_tot, n=2),
+         lag_3 = dplyr::lag(bike_tot, n=3),
+         lag_4 = dplyr::lag(bike_tot, n=4),
+         lag_5 = dplyr::lag(bike_tot, n=5),
+         lag_6 = dplyr::lag(bike_tot, n=6),
+         lag_7 = dplyr::lag(bike_tot, n=7))
+```
+
+```{r split test and train}
+train <- dat %>% filter(Date < ymd("2023-01-01"))
+test <- dat %>% filter(Date >= ymd("2023-01-01"))
+```
+
+```{r create linear model}
+lm_hardbrücke <- train %>% lm(bike_tot ~ `Hr [%Hr]` + `RainDur [min]` + 
+                              `StrGlo [W/m2]` + `T [°C]` + `WD [°]` + `WVs [m/s]`
+                            + `WVv [m/s]` + `p [hPa]` + Weekday + Month +
+                              lag_1 + lag_2 + lag_3 + lag_4 + lag_5 + lag_6 +
+                              lag_7, data = .)
+```
+
+::: panel-tabset
+### Model Statistics
+
+```{r lm summary, echo = FALSE, include=FALSE}
+sm <- summary(lm_hardbrücke)
+sm$adj.r.squared
+sm$df[2]
+```
+
+- Adjusted R-squard: `r round(sm$adj.r.squared,4)`
+- Residual standard error: `r round(sd(sm$residuals),2)` on `r round(sm$df[2],0)` degrees of freedom
+
+### Residuals
+
+```{r lm residuals}
+par(mfrow = c(2,2))
+plot(lm_hardbrücke)
+```
+:::
+
+### Variable Importance
+
+```{r lm predict}
+caret::varImp(lm_hardbrücke)
+```
+
