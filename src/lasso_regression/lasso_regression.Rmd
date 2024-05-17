@@ -352,6 +352,19 @@ arima_fit <- auto.arima(bike_ts)
 arima_fit
 ```
 
+```{r}
+# remove the trend from a multiplicative model
+bike_ts_decompose_mult <- decompose(bike_ts, type="multiplicative")
+trend_component <- bike_ts_decompose_mult$trend
+detrended <- bike_ts/trend_component
+
+par(mfrow=c(1,2))
+plot.ts(bike_ts, col = "blue", main = "Original series")
+plot.ts(detrended, col = "blue",  
+        main = "Detrended series", 
+        ylab = "Detrended values")
+```
+
 
 
 ```{r}
@@ -414,7 +427,7 @@ acf(velo_ts)
 # Build multivariate linear model
 lm_velo <- prep %>% 
   filter(year(Datetime) == 2022) %>%
-  lm(bike_tot ~ Weekday + Time + Month + Hr...Hr. + RainDur..min. + StrGlo..W.m2. + T...C. + WD.... + WVs..m.s. + WVv..m.s. + p..hPa., data = .)
+  lm(bike_detrended ~ Weekday + Time + Month + Hr...Hr. + RainDur..min. + StrGlo..W.m2. + T...C. + WD.... + WVs..m.s. + WVv..m.s. + p..hPa., data = .)
 
 par(mfrow = c(2,2))
 plot(lm_velo)
