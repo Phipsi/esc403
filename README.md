@@ -1,35 +1,41 @@
-# esc403
-ESC 403 Data Science Project Repository
+# Predicting Bicycle Traffic in Zurich
 
-## Project Members
+![](/doc/02_presentation/figs/web_zurich_opernhaus_velo_zt_16620_1600x900_01.jpg)
+
+- **University** : University of Zurich
+- **Lecture**: ESC 403 Introduction to Data Science
+
+
+## Authors
 - Julie Tschanz
-- Philipp Wyss
+- Philipp Wyss (philippchristian.wyss@uzh.ch)
 - Damian Brülhart
 - Mike Krähenbühl
 
 
 ## Project Proposal
-tbd
 
-### Where to Find Potential Datasets?
-- [UC Irvine Machine Learning Repository](https://archive.ics.uci.edu/)
-- [Hugging Face](https://huggingface.co/)
+Where do I find the project proposal?
+```yaml
+📁 esc403
+┗━📁 doc 
+  ┗━📁 01_proposal
+    ┗━📜 proposal_traffic_zurich.pdf # see here
+```
+
+## Project Presentation
+
+Where do I find the final project presentation?
+```yaml
+📁 esc403
+┗━📁 doc 
+  ┗━📁 02_presentation # reproducable 🎉 Quarto presentation
+```
+
+
+## Data Sources
+- [Stadt Zurich](https://stadt-zurich.ch/)
 - [opendata.swiss](https://opendata.swiss/en) (Swiss Open Government data)
-
-### Ideas for Potential Datasets
-- **Swiss Election Predictior**: Predicting the general mood in upcomming Swiss party elections based on data such as cencus data, education- culture- and sports- spending data. An aggregation of multiple datasets than can be found on [opendata.swiss](https://opendata.swiss/en) would be necessary. [ **Classification** | **Regression** ]
-
-- GWA (Genome-wide association study) ?
-
-- [Heart failure data / Hugging Face](https://huggingface.co/datasets/mstz/heart_failure)
-
-- [AIDS Clinical Trials Group Study 175](https://archive.ics.uci.edu/dataset/890/aids+clinical+trials+group+study+175) <br>
-The AIDS Clinical Trials Group Study 175 Dataset contains healthcare statistics and categorical information about patients who have been diagnosed with AIDS. This dataset was initially published in 1996. The prediction task is to predict whether or not each patient died within a certain window of time or not.  [ **Classification** | **Regression** ] , [ **2139 Data Points** ] <br>
-**Feedback by Prof. Dr. Robert Feldmann:** Dataset is big enough but the research questino should be a new one - what might be a bit difficult here
-
-- [Maternal Health Risk](https://archive.ics.uci.edu/dataset/863/maternal+health+risk) <br>
-Data has been collected from different hospitals, community clinics, maternal health cares from the rural areas of Bangladesh through the IoT based risk monitoring system. [ **Classification** ] , [ **1013 Data Points** ] <br>
-**Feedback by Prof. Dr. Robert Feldmann:** Dataset is big enough but the research questino should be a new one - what might be a bit difficult here
 
 
 ## Project Structure
