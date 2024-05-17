@@ -458,8 +458,11 @@ ggplot(lm_importance, aes(x = Variable, y = Value)) +
 ::: panel-tabset
 ### Full Year
 ```{r lm predict}
+predict_exclude <- c("Datetime", "Date", "bezeichnung", "bike_tot",
+                       "bezeichnung")
+
 pred <- predict(lm_hardbrücke, 
-                newdata = test %>% select(-c(bike_tot, Date)),
+                newdata = test %>% select(-c(all_of(predict_exclude))),
                 interval = "confidence")
 
 pred <- cbind(pred, test[,c("Datetime", "bike_tot")])
@@ -512,7 +515,6 @@ Residual mean squared error : `r round(lm_hardbrücke_rmse,2)`
 
 ```{r lasso regression, message=FALSE}
 set.seed(123)
-exclude_for_model <- c("Datetime", "Date", "bezeichnung", "bike_tot")
 
 # Create a model matrix of the predictors
 X <- model.matrix(bike_tot ~ `Hr [%Hr]` + `RainDur [min]` + 
@@ -617,14 +619,13 @@ pred_lasso %>% head(250) %>%
 ### Performance
 ```{r lasso calculate rmse}
 # Calculate model performance - Residual mean squared error
-lm_hardbrücke_rmse <- sqrt(mean((test$bike_tot - pred$fit)^2))
+lasso_hardbrücke_rmse <- sqrt(mean((test$bike_tot - pred$fit)^2))
 ```
-Residual mean squared error : `r round(lm_hardbrücke_rmse,2)`
+Residual mean squared error : `r round(lasso_hardbrücke_rmse,2)`
 
 ::: 
 
 ## Poisson Regression
-
 
 ::: columns
 ::: {.column width="40%"}
@@ -642,3 +643,78 @@ hist(dat$bike_tot, xlab = "Bike traffic per hour",
 :::
 :::
 
+## Poisson Regression: Results
+
+```{r poisson model}
+# Create poisson regression model
+set.seed(123)
+fit_pois <- glm(bike_tot ~ `Hr [%Hr]` + `RainDur [min]` + 
+                  `StrGlo [W/m2]` + `T [°C]` + `WD [°]` + `WVs [m/s]` + 
+                  `WVv [m/s]` + `p [hPa]` + Weekday + Month +
+                  lag_1 + lag_2 + lag_3 + lag_4 + lag_5 + lag_6 +
+                  lag_7, 
+                data = train,
+                family = poisson(link="sqrt"))
+
+# Predict
+pred_pois <- predict(fit_pois, 
+                     newdata = test %>% select(-c(all_of(predict_exclude))), 
+                     type = "response")
+
+pred_pois <- cbind(pred_pois, test[,c("Datetime", "bike_tot")])
+```
+
+
+::: panel-tabset
+### Full Year
+```{r poisson predict plot}
+pred_pois %>% 
+  ggplot(aes(x = Datetime, y = bike_tot, col = "true value")) + 
+  geom_point(pch = 20) +
+  geom_line() +
+  geom_point(aes(x = Datetime, y = pred_pois, col = "fitted value")) +
+  geom_line(aes(x = Datetime, y = pred_pois, col = "fitted value")) +
+  ylab("Bike Traffic") +
+  ggtitle(paste("Predicted Bike traffic at B:", dat$bezeichnung[1], " [2023]")) +
+  theme_classic() +
+  theme(legend.position = "bottom") + 
+  # Manualy set color scale
+  scale_colour_manual(
+    values = c("#F47382", "#9EA8BA")
+  )
+```
+
+### January
+```{r poisson predict plot january}
+pred_pois %>% head(250) %>%
+  ggplot(aes(x = Datetime, y = bike_tot, col = "true value")) + 
+  geom_point(pch = 20) +
+  geom_line() +
+  geom_point(aes(x = Datetime, y = pred_pois, col = "fitted value")) +
+  geom_line(aes(x = Datetime, y = pred_pois, col = "fitted value")) +
+  ylab("Bike Traffic") +
+  ggtitle(paste("Predicted Traffic at B:", dat$bezeichnung[1], " [2023]")) +
+  theme_classic() +
+  theme(legend.position = "bottom") + 
+  # Manualy set color scale
+  scale_colour_manual(
+    values = c("#F47382", "#9EA8BA")
+  )
+```
+
+
+### Performance
+```{r poisson rmse}
+# Calculate model performance - Residual mean squared error
+pois_hardbrücke_rmse <- sqrt(mean((pred_pois$bike_tot - pred_pois$pred_pois)^2))
+```
+Residual mean squared error : `r round(pois_hardbrücke_rmse,2)`
+
+::: 
+
+
+## Negative Binomial Regression
+
+## Model Comparison
+
+## Conclusion
