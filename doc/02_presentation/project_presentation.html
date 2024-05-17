@@ -343,8 +343,9 @@ D. Bruelhart, M. Krähenbühl, P. Wyss and J. Tschanz
 <h2>Table of contents</h2>
 <ol type="1">
 <li>Introduction</li>
+<li>Data</li>
 <li>Exploratory Data Analysis</li>
-<li>Traffic modelling</li>
+<li>Traffic Modelling</li>
 <li>Conclusion</li>
 </ol>
 </section>
@@ -410,6 +411,17 @@ D. Bruelhart, M. Krähenbühl, P. Wyss and J. Tschanz
 <h2>Data: Measurement Locations</h2>
 
 <img data-src="figs/citymap_marked.png" class="r-stretch quarto-figure-center"></section>
+<section id="data-missing-values" class="slide level2">
+<h2>Data: Missing Values</h2>
+<ul>
+<li>Missing values were only found for certain weather measurements</li>
+<li><strong>Solution</strong>: Custom algorithm for imputation
+<ul>
+<li>In case of a missing value randomly choose a value from the <em>same day and hour</em></li>
+<li>In case of still missing values randomly choose a value from the <em>day before</em></li>
+</ul></li>
+</ul>
+</section>
 <section id="exploratory-data-analysis-traffic" class="slide level2">
 <h2>Exploratory Data Analysis: Traffic</h2>
 <div class="panel-tabset">
@@ -589,7 +601,7 @@ D. Bruelhart, M. Krähenbühl, P. Wyss and J. Tschanz
 <p><img data-src="project_presentation_files/figure-revealjs/hist%20of%20sqrt-1.png" width="960"></p>
 </div>
 </div>
-</div><p>Shapiro-Wilk normality test for normality reflecting significant departure from normality assumption with p-value &lt; 0.005.</p>
+</div><p>Shapiro-Wilk normality test on <span class="math inline">\(\sqrt{bike\_tot}\)</span> for normality reflecting significant departure from normality assumption with p-value &lt; 0.005.</p>
 </div>
 </section>
 <section id="linear-regression-1" class="slide level2">
@@ -653,8 +665,9 @@ D. Bruelhart, M. Krähenbühl, P. Wyss and J. Tschanz
 <div class="tab-content">
 <div id="tabset-7-1">
 <ul>
-<li></li>
-<li><span class="math inline">\(\lambda_{\sigma}\)</span> = 0.51 with 20 nonzero coefficients</li>
+<li><span class="math inline">\(\alpha = 1\)</span></li>
+<li><span class="math inline">\(\lambda_{min} =\)</span> 0.04 with 13 nonzero coefficients</li>
+<li>R-squard: 0.7518</li>
 </ul>
 </div>
 <div id="tabset-7-2">
@@ -694,7 +707,7 @@ D. Bruelhart, M. Krähenbühl, P. Wyss and J. Tschanz
 </div>
 </div>
 <div id="tabset-8-3">
-<p>Residual mean squared error : 61.79</p>
+<p>Residual mean squared error : 23.75</p>
 </div>
 </div>
 </div>
@@ -741,6 +754,103 @@ D. Bruelhart, M. Krähenbühl, P. Wyss and J. Tschanz
 </div>
 </div>
 </div>
+</section>
+<section id="negative-binomial-regression" class="slide level2">
+<h2>Negative Binomial Regression</h2>
+<div class="panel-tabset">
+<ul id="tabset-10" class="panel-tabset-tabby"><li><a data-tabby-default="" href="#tabset-10-1">Full Year</a></li><li><a href="#tabset-10-2">January</a></li><li><a href="#tabset-10-3">Performance</a></li></ul>
+<div class="tab-content">
+<div id="tabset-10-1">
+<div class="cell">
+<div class="cell-output-display">
+<p><img data-src="project_presentation_files/figure-revealjs/nb%20predict%20plot-1.png" width="960"></p>
+</div>
+</div>
+</div>
+<div id="tabset-10-2">
+<div class="cell">
+<div class="cell-output-display">
+<p><img data-src="project_presentation_files/figure-revealjs/nb%20predict%20plot%20january-1.png" width="960"></p>
+</div>
+</div>
+</div>
+<div id="tabset-10-3">
+<p>Residual mean squared error : 145.05</p>
+</div>
+</div>
+</div>
+</section>
+<section id="model-comparison" class="slide level2">
+<h2>Model Comparison</h2>
+<table>
+<colgroup>
+<col style="width: 38%">
+<col style="width: 30%">
+<col style="width: 30%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Model</th>
+<th><span class="math inline">\(R^2\)</span></th>
+<th><span class="math inline">\(RMSE\)</span></th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>RF all feature</td>
+<td>0.87</td>
+<td>16.62</td>
+</tr>
+<tr class="even">
+<td>RF best hyperparameter</td>
+<td>0.88</td>
+<td>16.5</td>
+</tr>
+<tr class="odd">
+<td>RF top 5</td>
+<td>0.85</td>
+<td>18.02</td>
+</tr>
+<tr class="even">
+<td>linear regression</td>
+<td>0.75</td>
+<td>61.79</td>
+</tr>
+<tr class="odd">
+<td>lasso regression</td>
+<td>0.75</td>
+<td>23.75</td>
+</tr>
+<tr class="even">
+<td>poisson regression</td>
+<td>n/a</td>
+<td>27.42</td>
+</tr>
+<tr class="odd">
+<td>negative binomial</td>
+<td>n/a</td>
+<td>145.05</td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="conclusion" class="slide level2">
+<h2>Conclusion</h2>
+<ul>
+<li>Prediction quite good on station level but all models end to overestimate</li>
+<li>Limitations: did not take holidays or overall trend into account</li>
+<li><strong>Lasso</strong>, <strong>Poisson Regression</strong> and <strong>Random Forest</strong> had the best results</li>
+<li>Most importan variables are <em>hour of day</em> (<code>time</code>) the temperature (<code>T [°C]</code>) day of the week (<code>weekday</code>), <code>month</code>, <em>relative humidity</em> (`Hr [%Hr]) and the lagged values.</li>
+</ul>
+</section>
+<section id="thank-you" class="slide level2">
+<h2>Thank you 🙏</h2>
+<div class="quarto-figure quarto-figure-left">
+<figure>
+<p><img data-src="https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png" style="width:20.0%"></p>
+</figure>
+</div>
+<p><a href="https://github.com/Phipsi/esc403">GitHub Repository</a></p>
 <p><img src="figs/UZHLogo.png" class="slide-logo"></p>
 <div class="footer footer-default">
 <p>Predicting Bicycle Traffic in Zurich | 18.05.2024</p>

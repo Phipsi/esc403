@@ -13,10 +13,11 @@ editor: visual
 
 ## Table of contents
 
-1. Introduction
-2. Exploratory Data Analysis
-3. Traffic modelling
-4. Conclusion
+1.  Introduction
+2.  Data
+3.  Exploratory Data Analysis
+4.  Traffic Modelling
+5.  Conclusion
 
 ## Introduction
 
@@ -49,12 +50,13 @@ editor: visual
 
 [Automated foot and bike countings (every 15min)](https://data.stadt-zuerich.ch/dataset/ted_taz_verkehrszaehlungen_werte_fussgaenger_velo) from [stadt-zuerich.ch](https://stadt-zuerich.ch)
 
-- **Contains** : `ID of the location`, `Datetime`, `Velo_in`, `Velo_out`
+-   **Contains** : `ID of the location`, `Datetime`, `Velo_in`, `Velo_out`
 
 ### Metadata
+
 Metadata for automated foot and bike traffic counting locations from [stadt-zuerich.ch](https://stadt-zuerich.ch)
 
-- **Contains** : `ID of the location`, `Description`, `geometry`
+-   **Contains** : `ID of the location`, `Description`, `geometry`
 
 ### Weather
 
@@ -63,14 +65,22 @@ Metadata for automated foot and bike traffic counting locations from [stadt-zuer
 -   **Contains** : `Date`, `location`, `Air pressure (hPa)`, `Rain precipitation duration (min)`, `Temperature (C°)`, `global radiation (W/m2)`, `Relative humidity (%Hr)`, `Wind direction`
 
 ### Population
+
 [Population Data - City of Zurich](https://opendata.swiss) from [opendata.swiss](https://opendata.swiss)
 
-- **Contains** : `Year` and `Economic resident population of the city of Zurich by year`
+-   **Contains** : `Year` and `Economic resident population of the city of Zurich by year`
 :::
 
 ## Data: Measurement Locations
 
 ![](figs/citymap_marked.png){fig-align="center"}
+
+## Data: Missing Values
+
+-   Missing values were only found for certain weather measurements
+-   **Solution**: Custom algorithm for imputation
+    -   In case of a missing value randomly choose a value from the *same day and hour*
+    -   In case of still missing values randomly choose a value from the *day before*
 
 ## Exploratory Data Analysis: Traffic
 
@@ -313,6 +323,7 @@ corrplot::corrplot(cor_matrix, method = "color", type = "upper", order = "hclust
 :::
 
 ### Hardbrücke Nord
+
 ::: columns
 ::: {.column width="50%"}
 ![](figs/RF_Hardbruecke_nord_pred_vs_true.png){fig-align="center"}
@@ -324,6 +335,7 @@ corrplot::corrplot(cor_matrix, method = "color", type = "upper", order = "hclust
 :::
 
 ### Top 5 Features
+
 ::: columns
 ::: {.column width="50%"}
 ![](figs/RF_5features_Hardbruecke_nord_pred_vs_true.png){fig-align="center"}
@@ -333,15 +345,14 @@ corrplot::corrplot(cor_matrix, method = "color", type = "upper", order = "hclust
 ![](figs/RF_5features_Hardbruecke_nord_variable_importance.png){fig-align="center"}
 :::
 :::
-
 :::
 
 ## Random Forest: Grid Search
 
-- 50, 100, 200, 500, 1000, 2000, 5000, 10000
-- On the single location seen before
-- Best parameter is 2000
-- Only slightly better metrics
+-   50, 100, 200, 500, 1000, 2000, 5000, 10000
+-   On the single location seen before
+-   Best parameter is 2000
+-   Only slightly better metrics
 
 ## Random Forest: Comparison
 
@@ -349,16 +360,16 @@ corrplot::corrplot(cor_matrix, method = "color", type = "upper", order = "hclust
 
 ## Regression
 
-- Predicting bike traffic at a certain location
-- Model traffic with different regression techniques
-- Train on 2022 data and test on 2023
+-   Predicting bike traffic at a certain location
+-   Model traffic with different regression techniques
+-   Train on 2022 data and test on 2023
 
 **Included Features**
 
-- `'Hr [%Hr]', 'RainDur [min]', 'T [°C]', 'WD [°]', 'WVv [m/s]', 'p [hPa]', 'Year', 'AnzBestWir', 'hour', 'month', 'day_of_week'`, additional lag variables `lag_1` till `lag_7`
-
+-   `'Hr [%Hr]', 'RainDur [min]', 'T [°C]', 'WD [°]', 'WVv [m/s]', 'p [hPa]', 'Year', 'AnzBestWir', 'hour', 'month', 'day_of_week'`, additional lag variables `lag_1` till `lag_7`
 
 ## Linear Regression
+
 Is `bike_tot` normally distributed?
 
 ::: columns
@@ -373,6 +384,7 @@ hist(dat$bike_tot, xlab = "bike_tot", main = "Histogram of bike_tot")
 hist(sqrt(dat$bike_tot), xlab = "sqrt(bike_tot)", main = "Histogram of sqrt(bike_tot)")
 ```
 :::
+
 ```{r Shapiro-Wilk}
 set.seed(123)
 # Test for normality
@@ -382,10 +394,8 @@ if(shapiro$p.value < 0.005){
 }
 ```
 
-Shapiro-Wilk normality test for normality reflecting significant departure from normality assumption with p-value `r pvalue`.
-
+Shapiro-Wilk normality test on $\sqrt{bike\_tot}$ for normality reflecting significant departure from normality assumption with p-value `r pvalue`.
 :::
-
 
 ## Linear Regression
 
@@ -421,9 +431,10 @@ lm_hardbrücke <- train %>% lm(sqrt(bike_tot) ~ `Hr [%Hr]` + `RainDur [min]` +
 sm <- summary(lm_hardbrücke)
 sm$adj.r.squared
 ```
-- $\sqrt{y_i} = \beta_0+\beta_1x_1+...+\beta_nx_n+\epsilon_i$
-- Adjusted R-squard: `r round(sm$adj.r.squared,4)`
-- Residual standard error: `r round(sd(sm$residuals),2)` on `r round(sm$df[2],0)` degrees of freedom
+
+-   $\sqrt{y_i} = \beta_0+\beta_1x_1+...+\beta_nx_n+\epsilon_i$
+-   Adjusted R-squard: `r round(sm$adj.r.squared,4)`
+-   Residual standard error: `r round(sd(sm$residuals),2)` on `r round(sm$df[2],0)` degrees of freedom
 
 ### Residuals
 
@@ -431,7 +442,6 @@ sm$adj.r.squared
 par(mfrow = c(2,2))
 plot(lm_hardbrücke)
 ```
-
 
 ### Variable Importance
 
@@ -454,9 +464,9 @@ ggplot(lm_importance, aes(x = Variable, y = Value)) +
 
 ## Linear Regression: Prediction
 
-
 ::: panel-tabset
 ### Full Year
+
 ```{r lm predict}
 predict_exclude <- c("Datetime", "Date", "bezeichnung", "bike_tot",
                        "bezeichnung")
@@ -482,7 +492,9 @@ pred %>%
     values = c("#F47382", "#9EA8BA")
   )
 ```
+
 ### January
+
 ```{r lm predict january}
 pred %>% head(250) %>%
   ggplot(aes(x = Datetime, y = bike_tot, col = "true value")) + 
@@ -500,28 +512,29 @@ pred %>% head(250) %>%
   )
 ```
 
-
 ### Performance
+
 ```{r lm calculate rmse}
 # Calculate model performance - Residual mean squared error
 lm_hardbrücke_rmse <- sqrt(mean((test$bike_tot - pred$fit)^2))
 ```
-Residual mean squared error : `r round(lm_hardbrücke_rmse,2)`
 
-::: 
+Residual mean squared error : `r round(lm_hardbrücke_rmse,2)`
+:::
 
 ## Lasso Regression
-
 
 ```{r lasso regression, message=FALSE}
 set.seed(123)
 
+model_vars <- c("Hr [%Hr]" , "RainDur [min]" , 
+                  "StrGlo [W/m2]" , "T [°C]" , "WD [°]" , "WVs [m/s]" , 
+                  "WVv [m/s]" , "p [hPa]" , "Weekday" , "Month" ,
+                  "lag_1" , "lag_2" , "lag_3" , "lag_4" , "lag_5" , "lag_6" ,
+                  "lag_7")
+
 # Create a model matrix of the predictors
-X <- model.matrix(bike_tot ~ `Hr [%Hr]` + `RainDur [min]` + 
-                  `StrGlo [W/m2]` + `T [°C]` + `WD [°]` + `WVs [m/s]` + 
-                  `WVv [m/s]` + `p [hPa]` + Weekday + Month +
-                  lag_1 + lag_2 + lag_3 + lag_4 + lag_5 + lag_6 +
-                  lag_7, data = train[8:dim(train)[1],])
+X <- train[8:dim(train)[1],] %>% select(all_of(model_vars)) %>% as.matrix(.)
 
 # Create the response variable
 y = train[8:dim(train)[1],]$bike_tot
@@ -534,11 +547,7 @@ cvfit <- glmnet::cv.glmnet(x = X,
                            nfolds = 20)
 
 # Predict the test set
-X_test <- model.matrix(bike_tot ~ `Hr [%Hr]` + `RainDur [min]` + 
-                  `StrGlo [W/m2]` + `T [°C]` + `WD [°]` + `WVs [m/s]` + 
-                  `WVv [m/s]` + `p [hPa]` + Weekday + Month +
-                  lag_1 + lag_2 + lag_3 + lag_4 + lag_5 + lag_6 +
-                  lag_7, data = test)
+X_test <- test %>% select(all_of(model_vars)) %>% as.matrix(.)
 y_test <- test$bike_tot
 
 # Predict the test set
@@ -546,14 +555,19 @@ pred_lasso <- predict(cvfit, newx = X_test, s = cvfit$lambda.min)
 pred_lasso <- cbind(pred_lasso, test[,c("Datetime", "bike_tot")])
 
 # Calculate model performance - Residual mean squared error
-lasso_hardbrucke_rmse <- sqrt(mean((test$bike_tot - pred_lasso$s1)^2))
-```
-::: panel-tabset
+lasso_hardbrucke_rmse <- caret::RMSE(pred = pred_lasso$s1,
+                                     obs = pred_lasso$bike_tot)
 
+# Calculate R squared
+lasso_Rsquared <- cvfit$glmnet.fit$dev.ratio[cvfit$lambda == cvfit$lambda.min]
+```
+
+::: panel-tabset
 ### Model Statistics
 
-- 
-- $\lambda_{\sigma}$ = `r round(cvfit$lambda.1se,2)` with `r cvfit$nzero[cvfit$lambda == cvfit$lambda.1se]` nonzero coefficients
+-   $\alpha = 1$
+-   $\lambda_{min} =$ `r round(cvfit$lambda.min,2)` with `r cvfit$nzero[cvfit$lambda == cvfit$lambda.min]` nonzero coefficients
+-   R-squard: `r round(lasso_Rsquared,4)`
 
 ### Cross-validation
 
@@ -562,11 +576,13 @@ plot(cvfit)
 ```
 
 ### Variable Selection
+
 ```{r lasso variable selection}
 lasso_selection <- tibble(Coef = coef(cvfit, s = cvfit$lambda.1se)[,1],
                           Variable = rownames(coef(cvfit, s = cvfit$lambda.min)))
 # Filter out coefs that are 0
-lasso_selection <- lasso_selection %>% filter(Coef < 0 | Coef > 0)
+lasso_selection <- lasso_selection %>% filter(Coef < 0 | Coef > 0) %>%
+  filter(Variable != "(Intercept)")
 
 ggplot(lasso_selection, aes(x = Variable, y = Coef)) +
   geom_bar(stat = "identity", fill = "#808EA5") +
@@ -581,6 +597,7 @@ ggplot(lasso_selection, aes(x = Variable, y = Coef)) +
 
 ::: panel-tabset
 ### Full Year
+
 ```{r lasso predict}
 pred_lasso %>% 
   ggplot(aes(x = Datetime, y = bike_tot, col = "true value")) + 
@@ -597,7 +614,9 @@ pred_lasso %>%
     values = c("#F47382", "#9EA8BA")
   )
 ```
+
 ### January
+
 ```{r lasso predict january}
 pred_lasso %>% head(250) %>%
   ggplot(aes(x = Datetime, y = bike_tot, col = "true value")) + 
@@ -615,24 +634,18 @@ pred_lasso %>% head(250) %>%
   )
 ```
 
-
 ### Performance
-```{r lasso calculate rmse}
-# Calculate model performance - Residual mean squared error
-lasso_hardbrücke_rmse <- sqrt(mean((test$bike_tot - pred$fit)^2))
-```
-Residual mean squared error : `r round(lasso_hardbrücke_rmse,2)`
 
-::: 
+Residual mean squared error : `r round(lasso_hardbrucke_rmse,2)`
+:::
 
 ## Poisson Regression
 
 ::: columns
 ::: {.column width="40%"}
-
-- Data suggests poisson distribution
-- $\mu$ = `r round(mean(dat$bike_tot),0)`
-- $\sigma^2$ = `r round(var(dat$bike_tot),0)`
+-   Data suggests poisson distribution
+-   $\mu$ = `r round(mean(dat$bike_tot),0)`
+-   $\sigma^2$ = `r round(var(dat$bike_tot),0)`
 :::
 
 ::: {.column width="60%"}
@@ -664,9 +677,9 @@ pred_pois <- predict(fit_pois,
 pred_pois <- cbind(pred_pois, test[,c("Datetime", "bike_tot")])
 ```
 
-
 ::: panel-tabset
 ### Full Year
+
 ```{r poisson predict plot}
 pred_pois %>% 
   ggplot(aes(x = Datetime, y = bike_tot, col = "true value")) + 
@@ -685,6 +698,7 @@ pred_pois %>%
 ```
 
 ### January
+
 ```{r poisson predict plot january}
 pred_pois %>% head(250) %>%
   ggplot(aes(x = Datetime, y = bike_tot, col = "true value")) + 
@@ -702,19 +716,104 @@ pred_pois %>% head(250) %>%
   )
 ```
 
-
 ### Performance
+
 ```{r poisson rmse}
 # Calculate model performance - Residual mean squared error
 pois_hardbrücke_rmse <- sqrt(mean((pred_pois$bike_tot - pred_pois$pred_pois)^2))
 ```
+
 Residual mean squared error : `r round(pois_hardbrücke_rmse,2)`
-
-::: 
-
+:::
 
 ## Negative Binomial Regression
 
+```{r negative binomial model}
+# Fit the model
+fit_nb <- MASS::glm.nb(bike_tot ~ `Hr [%Hr]` + `RainDur [min]` + 
+                  `StrGlo [W/m2]` + `T [°C]` + `WD [°]` + `WVs [m/s]` + 
+                  `WVv [m/s]` + `p [hPa]` + Weekday + Month +
+                  lag_1 + lag_2 + lag_3 + lag_4 + lag_5 + lag_6 +
+                  lag_7, 
+                data = train)
+
+# Predict
+pred_nb <- predict(fit_nb, 
+                     newdata = test %>% select(-c(all_of(predict_exclude))), 
+                     type = "response")
+
+pred_nb <- cbind(pred_nb, test[,c("Datetime", "bike_tot")])
+
+# Calculate model performance - Residual mean squared error
+nb_hardbrücke_rmse <- caret::RMSE(pred = pred_nb$bike_tot, 
+                                  obs = pred_nb$pred_nb)
+```
+
+::: panel-tabset
+### Full Year
+
+```{r nb predict plot}
+pred_nb %>% 
+  ggplot(aes(x = Datetime, y = bike_tot, col = "true value")) + 
+  geom_point(pch = 20) +
+  geom_line() +
+  geom_point(aes(x = Datetime, y = pred_nb, col = "fitted value")) +
+  geom_line(aes(x = Datetime, y = pred_nb, col = "fitted value")) +
+  ylab("Bike Traffic") +
+  ggtitle(paste("Predicted Bike traffic at B:", dat$bezeichnung[1], " [2023]")) +
+  theme_classic() +
+  theme(legend.position = "bottom") + 
+  # Manualy set color scale
+  scale_colour_manual(
+    values = c("#F47382", "#9EA8BA")
+  )
+```
+
+### January
+
+```{r nb predict plot january}
+pred_nb %>% head(250) %>%
+  ggplot(aes(x = Datetime, y = bike_tot, col = "true value")) + 
+  geom_point(pch = 20) +
+  geom_line() +
+  geom_point(aes(x = Datetime, y = pred_nb, col = "fitted value")) +
+  geom_line(aes(x = Datetime, y = pred_nb, col = "fitted value")) +
+  ylab("Bike Traffic") +
+  ggtitle(paste("Predicted Traffic at B:", dat$bezeichnung[1], " [2023]")) +
+  theme_classic() +
+  theme(legend.position = "bottom") + 
+  # Manualy set color scale
+  scale_colour_manual(
+    values = c("#F47382", "#9EA8BA")
+  )
+```
+
+### Performance
+
+Residual mean squared error : `r round(nb_hardbrücke_rmse,2)`
+:::
+
 ## Model Comparison
 
+| Model                  | $R^2$                         | $RMSE$                             |
+|-------------------------------|-------------------------|-------------------------|
+| RF all feature         | 0.87                          | 16.62                              |
+| RF best hyperparameter | 0.88                          | 16.5                               |
+| RF top 5               | 0.85                          | 18.02                              |
+| linear regression      | `r round(sm$adj.r.squared,2)` | `r round(lm_hardbrücke_rmse,2)`    |
+| lasso regression       | `r round(lasso_Rsquared,2)`   | `r round(lasso_hardbrucke_rmse,2)` |
+| poisson regression     | n/a                           | `r round(pois_hardbrücke_rmse,2)`  |
+| negative binomial      | n/a                           | `r round(nb_hardbrücke_rmse,2)`    |
+
 ## Conclusion
+
+-   Prediction quite good on station level but all models end to overestimate
+-   Limitations: did not take holidays or overall trend into account
+-   **Lasso**, **Poisson Regression** and **Random Forest** had the best results
+-   Most importan variables are *hour of day* (`time`) the temperature (`T [°C]`) day of the week (`weekday`), `month`, *relative humidity* (\`Hr \[%Hr\]) and the lagged values.
+
+## Thank you 🙏
+
+![](https://github.githubassets.com/assets/GitHub-Mark-ea2971cee799.png){fig-align="left" width="20%"}
+
+[GitHub Repository](https://github.com/Phipsi/esc403)
