@@ -37,13 +37,31 @@ Where do I find the final project presentation?
 - [Stadt Zurich](https://stadt-zurich.ch/)
 - [opendata.swiss](https://opendata.swiss/en) (Swiss Open Government data)
 
+**What about data preperation?**
 
-## Project Structure
+We have created a seperate data preperation notebook for each year. That happens there:
+
+1. Load raw data from `📁 data` folder or directly from source
+2. Aggregate data on hourly basis
+3. Imputation of missing values
+4. Joining of different datasets
+5. Export as `.csv` to `📁 results` folder
+```yaml
+📁 esc403
+┗━📁 src 
+  ┣━📜 data_preparation_2019.ipynb
+  ┣━📜 data_preparation_2020.ipynb
+  ┣━📜 data_preparation_2021.ipynb
+  ┣━📜 data_preparation_2022.ipynb
+  ┗━📜 data_preparation_2023.ipynb
+```
+
+## General Project Structure
 General project structure is derived by "Good enough practices in scientific computing" - G. Wilson et al.
 ```yml
 📁 my_project
-|--📁 doc  # text associated documents
-|--📁 data  # raw data and metadata
+|--📁 doc  # text associated documents and final hand-in's
+|--📁 data  # raw data files
 |--📁 results # files generated during cleanup and analysis
 |--📁 src # project source code / functions / reports / dashboards
 |--📁 bin # external scripts or compiled programs
