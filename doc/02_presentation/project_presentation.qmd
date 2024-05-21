@@ -519,7 +519,7 @@ pred %>% head(250) %>%
 lm_hardbrücke_rmse <- sqrt(mean((test$bike_tot - pred$fit)^2))
 ```
 
-Residual mean squared error : `r round(lm_hardbrücke_rmse,2)`
+Root mean squared error : `r round(lm_hardbrücke_rmse,2)`
 :::
 
 ## Lasso Regression
@@ -554,7 +554,7 @@ y_test <- test$bike_tot
 pred_lasso <- predict(cvfit, newx = X_test, s = cvfit$lambda.min)
 pred_lasso <- cbind(pred_lasso, test[,c("Datetime", "bike_tot")])
 
-# Calculate model performance - Residual mean squared error
+# Calculate model performance - Root mean squared error
 lasso_hardbrucke_rmse <- caret::RMSE(pred = pred_lasso$s1,
                                      obs = pred_lasso$bike_tot)
 
@@ -636,7 +636,7 @@ pred_lasso %>% head(250) %>%
 
 ### Performance
 
-Residual mean squared error : `r round(lasso_hardbrucke_rmse,2)`
+Root mean squared error : `r round(lasso_hardbrucke_rmse,2)`
 :::
 
 ## Poisson Regression
@@ -719,11 +719,11 @@ pred_pois %>% head(250) %>%
 ### Performance
 
 ```{r poisson rmse}
-# Calculate model performance - Residual mean squared error
+# Calculate model performance - Root mean squared error
 pois_hardbrücke_rmse <- sqrt(mean((pred_pois$bike_tot - pred_pois$pred_pois)^2))
 ```
 
-Residual mean squared error : `r round(pois_hardbrücke_rmse,2)`
+Root mean squared error : `r round(pois_hardbrücke_rmse,2)`
 :::
 
 ## Negative Binomial Regression
@@ -744,7 +744,7 @@ pred_nb <- predict(fit_nb,
 
 pred_nb <- cbind(pred_nb, test[,c("Datetime", "bike_tot")])
 
-# Calculate model performance - Residual mean squared error
+# Calculate model performance - Root mean squared error
 nb_hardbrücke_rmse <- caret::RMSE(pred = pred_nb$bike_tot, 
                                   obs = pred_nb$pred_nb)
 ```
@@ -790,13 +790,13 @@ pred_nb %>% head(250) %>%
 
 ### Performance
 
-Residual mean squared error : `r round(nb_hardbrücke_rmse,2)`
+Root mean squared error : `r round(nb_hardbrücke_rmse,2)`
 :::
 
 ## Model Comparison
 
 | Model                  | $R^2$                         | $RMSE$                             |
-|-------------------------------|-------------------------|-------------------------|
+|----------------------------|----------------------|----------------------|
 | RF all feature         | 0.87                          | 16.62                              |
 | RF best hyperparameter | 0.88                          | 16.5                               |
 | RF top 5               | 0.85                          | 18.02                              |
@@ -810,7 +810,7 @@ Residual mean squared error : `r round(nb_hardbrücke_rmse,2)`
 -   Prediction quite good on station level but all models end to overestimate
 -   Limitations: did not take holidays or overall trend into account
 -   **Lasso**, **Poisson Regression** and **Random Forest** had the best results
--   Most importan variables are *hour of day* (`time`) the temperature (`T [°C]`) day of the week (`weekday`), `month`, *relative humidity* (\`Hr \[%Hr\]) and the lagged values.
+-   Most important variables are *hour of day* (`time`) the temperature (`T [°C]`) day of the week (`weekday`), `month`, *relative humidity* (\`Hr \[%Hr\]) and the lagged values.
 
 ## Thank you 🙏
 
