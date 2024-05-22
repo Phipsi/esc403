@@ -1,5 +1,8 @@
 # Predicting Bicycle Traffic in Zurich
 
+> [!NOTE]
+> This project repository was part of a data science project at University of Zurich in 2024. It's content is now archived.
+
 ![](/doc/02_presentation/figs/web_zurich_opernhaus_velo_zt_16620_1600x900_01.jpg)
 <br>Image Source: [www.zuerich.com](https://www.zuerich.com/de/besuchen/unterwegs-in-zuerich/fahrradverleih-in-zuerich)
 
@@ -7,6 +10,14 @@ A data science project for the following lecture:
 
 - **University** : University of Zurich
 - **Lecture**: ESC 403 Introduction to Data Science
+
+Methods used for predicting bicycle traffic in Zurich City:
+
+- Random Forest (Python)
+- Linear Regression (R)
+- Lasso Regression (R)
+- Poisson Regression (R)
+- Negative Binomial Regression (R)
 
 
 ## Authors
