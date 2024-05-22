@@ -23,11 +23,11 @@ editor: visual
 
 ::: columns
 ::: {.column width="60%"}
--   Increase use of bike and foot traffic
+-   Increase in bike traffic
 
--   Development of public bike in cities
+-   Development of public bikes in cities
 
--   Need for such companies to provide enough
+-   Providers must know demand to provide enough bikes
 
 -   Impact of the weather on the traffic
 :::
@@ -39,9 +39,9 @@ editor: visual
 
 ## Main Questions
 
--   How does weather and season affect foot and bike traffic?
+-   How does weather and season affect bike traffic ?
 
--   is it possible to make predictions ?
+-   Is it possible to make predictions ?
 
 ## Data
 
@@ -271,7 +271,7 @@ dat %>%
   facet_wrap(vars(Variable), ncol = 1) +
   theme_classic() +
   ylab("Value") +
-  ggtitle(paste("Weather variables at", dat$bezeichnung[1], "by day in January")) +
+  ggtitle(paste("Weather variables at", dat$bezeichnung[1], "by hour in the first week of January")) +
   theme(legend.position = "bottom")
 ```
 
@@ -295,7 +295,7 @@ corrplot::corrplot(cor_matrix, method = "color", type = "upper", order = "hclust
 2.  Linear Regression
 3.  Lasso Regression
 4.  Poisson Regression
-5.  Negative binomial regression
+5.  Negative Binomial Regression
 
 ## Random Forest
 
@@ -366,7 +366,7 @@ corrplot::corrplot(cor_matrix, method = "color", type = "upper", order = "hclust
 
 **Included Features**
 
--   `'Hr [%Hr]', 'RainDur [min]', 'T [°C]', 'WD [°]', 'WVv [m/s]', 'p [hPa]', 'Year', 'AnzBestWir', 'hour', 'month', 'day_of_week'`, additional lag variables `lag_1` till `lag_7`
+-   `'Hr [%Hr]', 'RainDur [min]', 'T [°C]', 'WD [°]', 'WVv [m/s]', 'p [hPa]', 'Year', 'hour', 'month', 'day_of_week'`, additional lag variables `lag_1` till `lag_7`
 
 ## Linear Regression
 
@@ -747,6 +747,7 @@ pred_nb <- cbind(pred_nb, test[,c("Datetime", "bike_tot")])
 # Calculate model performance - Root mean squared error
 nb_hardbrücke_rmse <- caret::RMSE(pred = pred_nb$bike_tot, 
                                   obs = pred_nb$pred_nb)
+
 ```
 
 ::: panel-tabset
@@ -796,18 +797,18 @@ Root mean squared error : `r round(nb_hardbrücke_rmse,2)`
 ## Model Comparison
 
 | Model                  | $R^2$                         | $RMSE$                             |
-|----------------------------|----------------------|----------------------|
+|-------------------------------|-------------------|------------------|
 | RF all feature         | 0.87                          | 16.62                              |
 | RF best hyperparameter | 0.88                          | 16.5                               |
 | RF top 5               | 0.85                          | 18.02                              |
-| linear regression      | `r round(sm$adj.r.squared,2)` | `r round(lm_hardbrücke_rmse,2)`    |
-| lasso regression       | `r round(lasso_Rsquared,2)`   | `r round(lasso_hardbrucke_rmse,2)` |
-| poisson regression     | n/a                           | `r round(pois_hardbrücke_rmse,2)`  |
-| negative binomial      | n/a                           | `r round(nb_hardbrücke_rmse,2)`    |
+| Linear Regression      | `r round(sm$adj.r.squared,2)` | `r round(lm_hardbrücke_rmse,2)`    |
+| Lasso Regression       | `r round(lasso_Rsquared,2)`   | `r round(lasso_hardbrucke_rmse,2)` |
+| Poisson Regression     | n/a                           | `r round(pois_hardbrücke_rmse,2)`  |
+| Negative Binomial      | n/a                           | `r round(nb_hardbrücke_rmse,2)`    |
 
 ## Conclusion
 
--   Prediction quite good on station level but all models end to overestimate
+-   Prediction quite good on station level but all regression models tend to overestimate, while RF underestimates
 -   Limitations: did not take holidays or overall trend into account
 -   **Lasso**, **Poisson Regression** and **Random Forest** had the best results
 -   Most important variables are *hour of day* (`time`) the temperature (`T [°C]`) day of the week (`weekday`), `month`, *relative humidity* (\`Hr \[%Hr\]) and the lagged values.
